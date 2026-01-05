@@ -6,7 +6,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "roofrix-web": {
+    "roofrix-site": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -29,9 +29,7 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "src/styles.scss"
-            ]
+            "styles": ["src/styles.scss"]
           },
           "configurations": {
             "production": {
@@ -61,10 +59,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "roofrix-web:build:production"
+              "buildTarget": "roofrix-site:build:production"
             },
             "development": {
-              "buildTarget": "roofrix-web:build:development"
+              "buildTarget": "roofrix-site:build:development"
             }
           },
           "defaultConfiguration": "development"
