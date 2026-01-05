@@ -1,7 +1,8 @@
 .hero {
     display: flex;
     padding: 80px;
-    background: linear-gradient(180deg, #ffffff, #eef2f9);
+    // background: linear-gradient(180deg, #ffffff, #eef2f9);
+        background: url('../../../assets/images/main\ image.jpg') center/cover no-repeat;
 
     .hero-text {
         width: 45%;
@@ -39,11 +40,7 @@
         }
     }
 
-    .hero-image {
-        width: 55%;
-        background: url('/assets/roof-hero.jpg') center/cover no-repeat;
-        border-radius: 14px;
-    }
+
 }
 
 /* TRUSTED */
