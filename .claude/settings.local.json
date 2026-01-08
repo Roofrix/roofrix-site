@@ -9,7 +9,8 @@
       "Bash(npm start)",
       "Bash(dir:*)",
       "Bash(timeout /t 20)",
-      "Bash(ping:*)"
+      "Bash(ping:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
