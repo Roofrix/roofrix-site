@@ -3,13 +3,26 @@
   <header class="topbar">
     <h1 class="logo" (click)="navigateToHome()">Roofrix</h1>
 
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle" (click)="toggleMobileMenu()">
+      <svg *ngIf="!mobileMenuOpen" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+      <svg *ngIf="mobileMenuOpen" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+
     <!-- Navigation Links (Center) -->
-    <nav class="nav-links">
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
-      <a routerLink="/features" routerLinkActive="active">Features</a>
-      <a routerLink="/pricing" routerLinkActive="active">Pricing</a>
-      <a routerLink="/about" routerLinkActive="active">About</a>
-      <a routerLink="/contact" routerLinkActive="active">Contact</a>
+    <nav class="nav-links" [class.mobile-open]="mobileMenuOpen">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="mobileMenuOpen = false">Home</a>
+      <a routerLink="/features" routerLinkActive="active" (click)="mobileMenuOpen = false">Features</a>
+      <a routerLink="/pricing" routerLinkActive="active" (click)="mobileMenuOpen = false">Pricing</a>
+      <a routerLink="/about" routerLinkActive="active" (click)="mobileMenuOpen = false">About</a>
+      <a routerLink="/contact" routerLinkActive="active" (click)="mobileMenuOpen = false">Contact</a>
     </nav>
 
     <div class="right-section">

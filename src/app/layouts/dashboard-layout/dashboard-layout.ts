@@ -21,7 +21,7 @@ export class DashboardLayout {
   userProfile$: Observable<UserProfile | null> | null = null;
   showUserMenu = false;
   showOrderMenu = false;
-  showMobileMenu = false;
+  mobileMenuOpen = false;
 
   ngOnInit(): void {
     // Load user profile
@@ -43,12 +43,15 @@ export class DashboardLayout {
   }
 
   toggleMobileMenu(): void {
-    this.showMobileMenu = !this.showMobileMenu;
+    this.mobileMenuOpen = !this.mobileMenuOpen;
+    this.showUserMenu = false;
+    this.showOrderMenu = false;
   }
 
   signOut(): void {
     this.showUserMenu = false;
     this.showOrderMenu = false;
+    this.mobileMenuOpen = false;
     this.authService.signOutUser().subscribe();
   }
 
@@ -58,7 +61,7 @@ export class DashboardLayout {
 
   navigateTo(path: string): void {
     this.showOrderMenu = false;
-    this.showMobileMenu = false;
+    this.mobileMenuOpen = false;
     this.router.navigate([path]);
   }
 }

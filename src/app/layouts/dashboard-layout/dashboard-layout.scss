@@ -34,6 +34,21 @@
     }
   }
 
+  .mobile-menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    margin-left: auto;
+
+    @media (max-width: 768px) {
+      display: block;
+    }
+  }
+
   .nav-links {
     margin-left: auto;
     display: flex;
@@ -41,6 +56,20 @@
 
     @media (max-width: 768px) {
       display: none;
+      position: absolute;
+      top: 70px;
+      left: 0;
+      right: 0;
+      background: linear-gradient(90deg, #0c1b2e, #162f4f);
+      flex-direction: column;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+      margin-left: 0;
+
+      &.mobile-open {
+        display: flex;
+      }
     }
 
     a {
@@ -48,6 +77,15 @@
       text-decoration: none;
       font-size: 14px;
       transition: color 0.2s;
+
+      @media (max-width: 768px) {
+        padding: 12px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+        &:last-child {
+          border-bottom: none;
+        }
+      }
 
       &.active,
       &:hover {
@@ -61,6 +99,11 @@
     display: flex;
     align-items: center;
     gap: 12px;
+
+    @media (max-width: 768px) {
+      margin-left: 12px;
+      gap: 8px;
+    }
   }
 }
 
@@ -83,6 +126,15 @@
 
     &:hover {
       background: rgba(255, 255, 255, 0.15);
+    }
+
+    @media (max-width: 768px) {
+      padding: 8px;
+      font-size: 13px;
+
+      span {
+        display: none;
+      }
     }
 
     svg {

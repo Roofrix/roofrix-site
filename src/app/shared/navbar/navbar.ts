@@ -23,6 +23,7 @@ export class Navbar {
   userProfile$: Observable<UserProfile | null> | null = null;
   showUserMenu = false;
   showOrderMenu = false;
+  mobileMenuOpen = false;
 
   ngOnInit(): void {
     // Load user profile when authenticated
@@ -73,11 +74,21 @@ export class Navbar {
   }
 
   /**
+   * Toggle mobile menu
+   */
+  toggleMobileMenu(): void {
+    this.mobileMenuOpen = !this.mobileMenuOpen;
+    this.showUserMenu = false;
+    this.showOrderMenu = false;
+  }
+
+  /**
    * Sign out the current user
    */
   signOut(): void {
     this.showUserMenu = false;
     this.showOrderMenu = false;
+    this.mobileMenuOpen = false;
     this.authService.signOutUser().subscribe();
   }
 }

@@ -242,16 +242,88 @@
     }
 }
 
+// Mobile Menu Toggle
+.mobile-menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    margin-left: auto;
+
+    @media (max-width: 768px) {
+        display: block;
+    }
+}
+
+// Mobile Navigation
 @media (max-width: 768px) {
     .navbar {
         padding: 0 20px;
 
         nav {
             display: none;
+            position: absolute;
+            top: 70px;
+            left: 0;
+            right: 0;
+            background: linear-gradient(90deg, #0c1b2e, #162f4f);
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+
+            &.mobile-open {
+                display: flex;
+            }
+
+            a {
+                width: 100%;
+                padding: 12px 0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+                &:last-child {
+                    border-bottom: none;
+                }
+            }
+        }
+
+        .logged-in-section {
+            margin-left: auto;
+            gap: 8px;
+
+            .order-menu {
+                .order-menu-btn {
+                    padding: 8px 12px;
+                    font-size: 13px;
+
+                    span {
+                        display: none;
+                    }
+
+                    svg {
+                        display: block;
+                    }
+                }
+            }
+        }
+
+        .cta-buttons {
+            gap: 8px;
+
+            .signin-button,
+            .cta {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
         }
 
         .user-menu .user-button .user-email {
-            max-width: 120px;
+            max-width: 100px;
+            font-size: 12px;
         }
     }
 }
