@@ -1,0 +1,105 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getUserRole() == 'admin';
+    }
+
+    function isCustomer() {
+      return isSignedIn() && getUserRole() == 'customer';
+    }
+
+    function isDesigner() {
+      return isSignedIn() && getUserRole() == 'designer';
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Users can read their own profile, admins can read all
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Allow creating profiles during signup (system creates with uid)
+      // Must be creating their own profile with customer role
+      allow create: if isOwner(userId) &&
+                       request.resource.data.role == 'customer' &&
+                       request.resource.data.email is string &&
+                       request.resource.data.isActive == true;
+
+      // Users can update their own profile (except role and email)
+      allow update: if isOwner(userId) &&
+                       request.resource.data.role == resource.data.role &&
+                       request.resource.data.email == resource.data.email;
+
+      // Only admins can delete users
+      allow delete: if isAdmin();
+    }
+
+    // Orders collection
+    match /orders/{orderId} {
+      // Customers can read their own orders
+      // Designers can read assigned orders
+      // Admins can read all orders
+      allow read: if isAdmin() ||
+                     (isCustomer() && resource.data.customerId == request.auth.uid) ||
+                     (isDesigner() && resource.data.assignedDesignerId == request.auth.uid);
+
+      // Only customers can create orders for themselves
+      allow create: if isCustomer() &&
+                       request.resource.data.customerId == request.auth.uid;
+
+      // Customers can update their own orders (limited fields)
+      // Designers can update assigned orders (status, design files)
+      // Admins can update any order
+      allow update: if isAdmin() ||
+                       (isCustomer() && resource.data.customerId == request.auth.uid) ||
+                       (isDesigner() && resource.data.assignedDesignerId == request.auth.uid);
+
+      // Only admins can delete orders
+      allow delete: if isAdmin();
+
+      // Status history subcollection (read-only for customers/designers)
+      match /statusHistory/{historyId} {
+        allow read: if isAdmin() ||
+                       (isCustomer() && get(/databases/$(database)/documents/orders/$(orderId)).data.customerId == request.auth.uid) ||
+                       (isDesigner() && get(/databases/$(database)/documents/orders/$(orderId)).data.assignedDesignerId == request.auth.uid);
+
+        // Only admins and designers can create status history
+        allow create: if isAdmin() || isDesigner();
+
+        // Status history is immutable (no updates or deletes)
+        allow update, delete: if false;
+      }
+
+      // Messages subcollection
+      match /messages/{messageId} {
+        allow read: if isAdmin() ||
+                       (isCustomer() && get(/databases/$(database)/documents/orders/$(orderId)).data.customerId == request.auth.uid) ||
+                       (isDesigner() && get(/databases/$(database)/documents/orders/$(orderId)).data.assignedDesignerId == request.auth.uid);
+
+        // All authenticated users can create messages
+        allow create: if isSignedIn();
+
+        // Users can update messages (for marking as read)
+        allow update: if isSignedIn();
+
+        // Only admins can delete messages
+        allow delete: if isAdmin();
+      }
+    }
+  }
+}

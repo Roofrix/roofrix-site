@@ -1,0 +1,241 @@
+<div class="admin-orders-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Orders Management</h1>
+      <p class="page-subtitle">Manage all customer orders and assignments</p>
+    </div>
+  </div>
+
+  <!-- Filters and Search -->
+  <div class="filters-section">
+    <div class="search-box">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="M21 21l-4.35-4.35"></path>
+      </svg>
+      <input
+        type="text"
+        placeholder="Search by Order ID, Customer Name, or Project..."
+        [(ngModel)]="searchQuery"
+        (input)="onSearchChange()"
+      />
+    </div>
+
+    <div class="filter-group">
+      <label>Status:</label>
+      <select [(ngModel)]="statusFilter" (change)="onStatusFilterChange()">
+        <option value="all">All Status</option>
+        <option value="pending">Pending</option>
+        <option value="in_progress">In Progress</option>
+        <option value="review">Under Review</option>
+        <option value="completed">Completed</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Loading orders...</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-message" *ngIf="error && !loading">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <p>{{ error }}</p>
+  </div>
+
+  <!-- Orders Table -->
+  <div class="table-container" *ngIf="!loading && !error">
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="filteredOrders.length === 0">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+      </svg>
+      <h3>No orders found</h3>
+      <p>{{ searchQuery || statusFilter !== 'all' ? 'Try adjusting your filters' : 'No orders have been created yet' }}</p>
+    </div>
+
+    <!-- Table -->
+    <table class="orders-table" *ngIf="filteredOrders.length > 0">
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Customer</th>
+          <th>Project</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Designer</th>
+          <th>Priority</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let order of filteredOrders">
+          <td>
+            <span class="order-id">{{ order.orderNumber }}</span>
+          </td>
+          <td>
+            <div class="customer-info">
+              <div class="customer-name">{{ order.customerName }}</div>
+              <div class="customer-email">{{ order.customerEmail }}</div>
+            </div>
+          </td>
+          <td>
+            <div class="project-info">
+              <div class="project-name">{{ order.projectName }}</div>
+              <div class="project-address">{{ order.projectAddress }}</div>
+            </div>
+          </td>
+          <td>
+            <span class="date">{{ formatDate(order.createdAt) }}</span>
+          </td>
+          <td>
+            <span class="status-badge" [ngClass]="getStatusClass(order.status)">
+              {{ getStatusLabel(order.status) }}
+            </span>
+          </td>
+          <td>
+            <span class="designer-name" *ngIf="order.assignedDesignerEmail">
+              {{ order.assignedDesignerEmail }}
+            </span>
+            <span class="no-designer" *ngIf="!order.assignedDesignerEmail">
+              Not assigned
+            </span>
+          </td>
+          <td>
+            <span class="priority-badge" [ngClass]="getPriorityClass(order.priority)">
+              {{ (order.priority || 'low') | titlecase }}
+            </span>
+          </td>
+          <td>
+            <div class="actions">
+              <button class="action-btn" (click)="openStatusModal(order)" title="Change Status">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </button>
+              <button class="action-btn" (click)="openDesignerModal(order)" title="Assign Designer">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 00-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 010 7.75"></path>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Results count -->
+    <div class="results-footer" *ngIf="filteredOrders.length > 0">
+      Showing {{ filteredOrders.length }} of {{ orders.length }} orders
+    </div>
+  </div>
+</div>
+
+<!-- Status Change Modal -->
+<div class="modal-overlay" *ngIf="showStatusModal" (click)="closeStatusModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Update Order Status</h2>
+      <button class="close-btn" (click)="closeStatusModal()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body" *ngIf="selectedOrder">
+      <div class="order-info">
+        <strong>{{ selectedOrder.orderNumber }}</strong> - {{ selectedOrder.projectName }}
+      </div>
+
+      <div class="form-group">
+        <label>New Status</label>
+        <select [(ngModel)]="newStatus" class="form-control">
+          <option value="pending">Pending</option>
+          <option value="in_progress">In Progress</option>
+          <option value="review">Under Review</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea
+          [(ngModel)]="statusNotes"
+          class="form-control"
+          rows="3"
+          placeholder="Add notes about this status change..."
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeStatusModal()" [disabled]="updatingStatus">
+        Cancel
+      </button>
+      <button class="btn-primary" (click)="updateOrderStatus()" [disabled]="updatingStatus">
+        <span *ngIf="!updatingStatus">Update Status</span>
+        <span *ngIf="updatingStatus">Updating...</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Designer Assignment Modal -->
+<div class="modal-overlay" *ngIf="showDesignerModal" (click)="closeDesignerModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Assign Designer</h2>
+      <button class="close-btn" (click)="closeDesignerModal()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body" *ngIf="selectedOrder">
+      <div class="order-info">
+        <strong>{{ selectedOrder.orderNumber }}</strong> - {{ selectedOrder.projectName }}
+      </div>
+
+      <div class="form-group">
+        <label>Select Designer</label>
+        <select [(ngModel)]="selectedDesignerId" class="form-control">
+          <option value="">-- Select Designer --</option>
+          <option *ngFor="let designer of designers" [value]="designer.id">
+            {{ designer.displayName || designer.email }}
+          </option>
+        </select>
+      </div>
+
+      <div class="current-assignment" *ngIf="selectedOrder.assignedDesignerEmail">
+        <strong>Current:</strong> {{ selectedOrder.assignedDesignerEmail }}
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeDesignerModal()" [disabled]="assigningDesigner">
+        Cancel
+      </button>
+      <button class="btn-primary" (click)="assignDesigner()" [disabled]="assigningDesigner || !selectedDesignerId">
+        <span *ngIf="!assigningDesigner">Assign Designer</span>
+        <span *ngIf="assigningDesigner">Assigning...</span>
+      </button>
+    </div>
+  </div>
+</div>

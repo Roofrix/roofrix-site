@@ -1,0 +1,61 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isImageFile() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // User avatars
+    match /users/{userId}/avatar/{fileName} {
+      // Anyone can read avatars
+      allow read: if isSignedIn();
+
+      // Users can only upload to their own avatar folder
+      allow write: if isOwner(userId) &&
+                      request.resource.size < 5 * 1024 * 1024 && // 5MB max
+                      isImageFile();
+    }
+
+    // Order site images (customer uploads)
+    match /orders/{orderId}/site-images/{fileName} {
+      // All authenticated users can read
+      allow read: if isSignedIn();
+
+      // Any authenticated user can upload site images
+      allow write: if isSignedIn() &&
+                      request.resource.size < 10 * 1024 * 1024 && // 10MB max
+                      isImageFile();
+    }
+
+    // Order design files (designer uploads)
+    match /orders/{orderId}/design-files/{fileName} {
+      // All authenticated users can read
+      allow read: if isSignedIn();
+
+      // Any authenticated user can upload design files
+      allow write: if isSignedIn() &&
+                      request.resource.size < 50 * 1024 * 1024; // 50MB max
+    }
+
+    // Order message attachments
+    match /orders/{orderId}/messages/{fileName} {
+      // All authenticated users can read
+      allow read: if isSignedIn();
+
+      // Any authenticated user can upload message attachments
+      allow write: if isSignedIn() &&
+                      request.resource.size < 20 * 1024 * 1024; // 20MB max
+    }
+  }
+}

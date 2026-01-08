@@ -1,0 +1,134 @@
+<div class="new-order-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1 class="page-title">Create New Order</h1>
+    <p class="page-subtitle">Fill in the details for your rooftop design project</p>
+  </div>
+
+  <!-- Success Message -->
+  <div class="success-message" *ngIf="successMessage">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+    </svg>
+    <p>{{ successMessage }}</p>
+  </div>
+
+  <!-- Error Message -->
+  <div class="error-message" *ngIf="errorMessage">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <p>{{ errorMessage }}</p>
+  </div>
+
+  <!-- Order Form -->
+  <div class="form-container">
+    <form [formGroup]="orderForm" (ngSubmit)="onSubmit()">
+      <div class="form-grid">
+        <!-- Project Name -->
+        <div class="form-group full-width">
+          <label for="projectName">Project Name *</label>
+          <input
+            id="projectName"
+            type="text"
+            formControlName="projectName"
+            placeholder="e.g., Residential Roof Redesign"
+            [class.error]="hasError('projectName', 'required') || hasError('projectName', 'minlength')"
+          />
+          <span class="error-text" *ngIf="getErrorMessage('projectName')">
+            {{ getErrorMessage('projectName') }}
+          </span>
+        </div>
+
+        <!-- Project Address -->
+        <div class="form-group full-width">
+          <label for="projectAddress">Project Address *</label>
+          <input
+            id="projectAddress"
+            type="text"
+            formControlName="projectAddress"
+            placeholder="e.g., 123 Main St, Springfield, IL 62701"
+            [class.error]="hasError('projectAddress', 'required')"
+          />
+          <span class="error-text" *ngIf="getErrorMessage('projectAddress')">
+            {{ getErrorMessage('projectAddress') }}
+          </span>
+        </div>
+
+        <!-- Project Description -->
+        <div class="form-group full-width">
+          <label for="projectDescription">Project Description</label>
+          <textarea
+            id="projectDescription"
+            formControlName="projectDescription"
+            rows="4"
+            placeholder="Provide details about your rooftop design project..."
+          ></textarea>
+        </div>
+
+        <!-- Roof Type -->
+        <div class="form-group">
+          <label for="roofType">Roof Type</label>
+          <select id="roofType" formControlName="roofType">
+            <option value="">Select roof type</option>
+            <option value="Gable">Gable</option>
+            <option value="Hip">Hip</option>
+            <option value="Flat">Flat</option>
+            <option value="Mansard">Mansard</option>
+            <option value="Gambrel">Gambrel</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <!-- Estimated Area -->
+        <div class="form-group">
+          <label for="estimatedArea">Estimated Area (sq ft)</label>
+          <input
+            id="estimatedArea"
+            type="number"
+            formControlName="estimatedArea"
+            placeholder="e.g., 2500"
+            min="0"
+            [class.error]="hasError('estimatedArea', 'min')"
+          />
+          <span class="error-text" *ngIf="getErrorMessage('estimatedArea')">
+            {{ getErrorMessage('estimatedArea') }}
+          </span>
+        </div>
+
+        <!-- Priority -->
+        <div class="form-group full-width">
+          <label for="priority">Priority</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" formControlName="priority" value="low" />
+              <span>Low</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" formControlName="priority" value="medium" />
+              <span>Medium</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" formControlName="priority" value="high" />
+              <span>High</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" (click)="cancel()" [disabled]="loading">
+          Cancel
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="loading">
+          <span *ngIf="!loading">Create Order</span>
+          <span *ngIf="loading">Creating...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

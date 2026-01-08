@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 6136 -Force\")",
+      "Bash(if exist .angular rd /s /q .angular)",
+      "Bash(npm start)",
+      "Bash(dir:*)",
+      "Bash(timeout /t 20)",
+      "Bash(ping:*)"
+    ]
+  }
+}
