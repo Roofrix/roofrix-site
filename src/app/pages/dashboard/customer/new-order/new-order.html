@@ -1,134 +1,336 @@
-<div class="new-order-page">
-  <!-- Page Header -->
+<div class="order-page">
+  <!-- Page Header with Structure Category -->
   <div class="page-header">
-    <h1 class="page-title">Create New Order</h1>
-    <p class="page-subtitle">Fill in the details for your rooftop design project</p>
+    <h1>{{ structureCategoryInfo?.name || 'New Order' }}</h1>
+    <p class="structure-range" *ngIf="structureCategoryInfo">{{ structureCategoryInfo.sqRange }}</p>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="loadingPricing">
+    <div class="loading-spinner"></div>
+    <p>Loading pricing data...</p>
   </div>
 
   <!-- Success Message -->
-  <div class="success-message" *ngIf="successMessage">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+  <div class="alert alert-success" *ngIf="successMessage">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
       <polyline points="22 4 12 14.01 9 11.01"></polyline>
     </svg>
-    <p>{{ successMessage }}</p>
+    <span>{{ successMessage }}</span>
   </div>
 
   <!-- Error Message -->
-  <div class="error-message" *ngIf="errorMessage">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+  <div class="alert alert-error" *ngIf="errorMessage">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="12" cy="12" r="10"></circle>
       <line x1="12" y1="8" x2="12" y2="12"></line>
       <line x1="12" y1="16" x2="12.01" y2="16"></line>
     </svg>
-    <p>{{ errorMessage }}</p>
+    <span>{{ errorMessage }}</span>
   </div>
 
   <!-- Order Form -->
-  <div class="form-container">
+  <div class="form-container" *ngIf="!loadingPricing">
     <form [formGroup]="orderForm" (ngSubmit)="onSubmit()">
-      <div class="form-grid">
-        <!-- Project Name -->
-        <div class="form-group full-width">
-          <label for="projectName">Project Name *</label>
-          <input
-            id="projectName"
-            type="text"
-            formControlName="projectName"
-            placeholder="e.g., Residential Roof Redesign"
-            [class.error]="hasError('projectName', 'required') || hasError('projectName', 'minlength')"
-          />
-          <span class="error-text" *ngIf="getErrorMessage('projectName')">
-            {{ getErrorMessage('projectName') }}
-          </span>
-        </div>
 
-        <!-- Project Address -->
-        <div class="form-group full-width">
-          <label for="projectAddress">Project Address *</label>
-          <input
-            id="projectAddress"
-            type="text"
-            formControlName="projectAddress"
-            placeholder="e.g., 123 Main St, Springfield, IL 62701"
-            [class.error]="hasError('projectAddress', 'required')"
-          />
-          <span class="error-text" *ngIf="getErrorMessage('projectAddress')">
-            {{ getErrorMessage('projectAddress') }}
-          </span>
+      <!-- Section 1: Enter Address and Confirm Pin -->
+      <div class="accordion-section address-section">
+        <div class="accordion-header" (click)="toggleSection('address')">
+          <div class="section-title">
+            <span class="section-number">1</span>
+            <span>Enter Address and Confirm Pin</span>
+          </div>
+          <svg class="chevron" [class.expanded]="expandedSections['address']" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
         </div>
+        <div class="accordion-content" *ngIf="expandedSections['address']">
+          <p class="address-instruction">Search for the address and confirm the pin is correctly placed on the desired location.</p>
 
-        <!-- Project Description -->
-        <div class="form-group full-width">
-          <label for="projectDescription">Project Description</label>
-          <textarea
-            id="projectDescription"
-            formControlName="projectDescription"
-            rows="4"
-            placeholder="Provide details about your rooftop design project..."
-          ></textarea>
+          <div class="address-search-container">
+            <input
+              #addressInput
+              type="text"
+              formControlName="address"
+              placeholder="Search for a location"
+              [class.error]="hasError('address', 'required')"
+              (input)="searchAddress()"
+              (blur)="hideSearchResults()"
+              autocomplete="off"
+            />
+            <!-- Search Results Dropdown -->
+            <div class="search-results" *ngIf="showSearchResults && searchResults.length > 0">
+              <div
+                class="search-result-item"
+                *ngFor="let result of searchResults"
+                (mousedown)="selectSearchResult(result)"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                <span>{{ result.display_name }}</span>
+              </div>
+            </div>
+            <span class="error-text" *ngIf="getErrorMessage('address')">
+              {{ getErrorMessage('address') }}
+            </span>
+          </div>
+
+          <!-- Leaflet Map Container -->
+          <div class="map-container">
+            <div #mapElement class="google-map"></div>
+          </div>
+
+          <p class="map-instruction">Click on the map or drag the pin to adjust the location, then confirm to proceed.</p>
+
+          <!-- Confirm Location Button -->
+          <button
+            type="button"
+            class="btn-confirm-location"
+            [disabled]="!selectedLocation"
+            [class.confirmed]="locationConfirmed"
+            (click)="confirmLocation()"
+          >
+            <svg *ngIf="!locationConfirmed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <svg *ngIf="locationConfirmed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>{{ locationConfirmed ? 'Location Confirmed' : 'Confirm Location' }}</span>
+          </button>
         </div>
+      </div>
 
-        <!-- Roof Type -->
-        <div class="form-group">
-          <label for="roofType">Roof Type</label>
-          <select id="roofType" formControlName="roofType">
-            <option value="">Select roof type</option>
-            <option value="Gable">Gable</option>
-            <option value="Hip">Hip</option>
-            <option value="Flat">Flat</option>
-            <option value="Mansard">Mansard</option>
-            <option value="Gambrel">Gambrel</option>
-            <option value="Other">Other</option>
-          </select>
+      <!-- Section 2: Choose Report Type -->
+      <div class="accordion-section">
+        <div class="accordion-header" (click)="toggleSection('reportType')">
+          <div class="section-title">
+            <span class="section-number">2</span>
+            <span>Choose Report Type</span>
+          </div>
+          <svg class="chevron" [class.expanded]="expandedSections['reportType']" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
         </div>
-
-        <!-- Estimated Area -->
-        <div class="form-group">
-          <label for="estimatedArea">Estimated Area (sq ft)</label>
-          <input
-            id="estimatedArea"
-            type="number"
-            formControlName="estimatedArea"
-            placeholder="e.g., 2500"
-            min="0"
-            [class.error]="hasError('estimatedArea', 'min')"
-          />
-          <span class="error-text" *ngIf="getErrorMessage('estimatedArea')">
-            {{ getErrorMessage('estimatedArea') }}
-          </span>
-        </div>
-
-        <!-- Priority -->
-        <div class="form-group full-width">
-          <label for="priority">Priority</label>
-          <div class="radio-group">
-            <label class="radio-label">
-              <input type="radio" formControlName="priority" value="low" />
-              <span>Low</span>
+        <div class="accordion-content" *ngIf="expandedSections['reportType']">
+          <div class="report-options">
+            <label
+              *ngFor="let type of reportTypes"
+              class="report-option"
+              [class.selected]="orderForm.get('reportType')?.value === type.id"
+            >
+              <input
+                type="radio"
+                formControlName="reportType"
+                [value]="type.id"
+              />
+              <div class="option-content">
+                <span class="option-name">{{ type.name }}</span>
+                <span class="option-desc">({{ type.description }})</span>
+              </div>
+              <span class="option-price">${{ type.price }}</span>
             </label>
-            <label class="radio-label">
-              <input type="radio" formControlName="priority" value="medium" />
-              <span>Medium</span>
+          </div>
+          <div class="no-data" *ngIf="reportTypes.length === 0">
+            No report types available. Please contact support.
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Addons (Optional) -->
+      <div class="accordion-section">
+        <div class="accordion-header" (click)="toggleSection('addons')">
+          <div class="section-title">
+            <span class="section-number">3</span>
+            <span>Addons</span>
+            <span class="optional-badge">(Optional)</span>
+          </div>
+          <svg class="chevron" [class.expanded]="expandedSections['addons']" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <div class="accordion-content" *ngIf="expandedSections['addons']">
+          <div class="addon-options">
+            <label
+              *ngFor="let addon of addons"
+              class="addon-option"
+              [class.selected]="isAddonSelected(addon.id)"
+            >
+              <input
+                type="checkbox"
+                [checked]="isAddonSelected(addon.id)"
+                (change)="toggleAddon(addon)"
+              />
+              <span class="addon-name">
+                {{ addon.name }}
+                <span *ngIf="addon.badge" class="addon-badge">{{ addon.badge }}</span>
+              </span>
+              <span class="addon-price">${{ addon.price }}</span>
             </label>
-            <label class="radio-label">
-              <input type="radio" formControlName="priority" value="high" />
-              <span>High</span>
+          </div>
+          <div class="no-data" *ngIf="addons.length === 0">
+            No addons available.
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Structure Type -->
+      <div class="accordion-section">
+        <div class="accordion-header" (click)="toggleSection('structureType')">
+          <div class="section-title">
+            <span class="section-number">4</span>
+            <span>Structure Type</span>
+          </div>
+          <svg class="chevron" [class.expanded]="expandedSections['structureType']" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <div class="accordion-content" *ngIf="expandedSections['structureType']">
+          <div class="structure-type-options">
+            <label class="structure-type-option" [class.selected]="orderForm.get('structureType')?.value === 'main'">
+              <input type="radio" formControlName="structureType" value="main" />
+              <span class="radio-circle"></span>
+              <span class="option-label">Main</span>
+            </label>
+            <label class="structure-type-option" [class.selected]="orderForm.get('structureType')?.value === 'main_and_garage'">
+              <input type="radio" formControlName="structureType" value="main_and_garage" />
+              <span class="radio-circle"></span>
+              <span class="option-label">Main and Garage</span>
             </label>
           </div>
         </div>
       </div>
 
-      <!-- Form Actions -->
-      <div class="form-actions">
-        <button type="button" class="btn-secondary" (click)="cancel()" [disabled]="loading">
-          Cancel
-        </button>
-        <button type="submit" class="btn-primary" [disabled]="loading">
-          <span *ngIf="!loading">Create Order</span>
-          <span *ngIf="loading">Creating...</span>
+      <!-- Section 5: Specify Roof Pitch (Optional) -->
+      <div class="accordion-section">
+        <div class="accordion-header" (click)="toggleSection('roofPitch')">
+          <div class="section-title">
+            <span class="section-number">5</span>
+            <span>Specify Roof Pitch</span>
+            <span class="optional-badge">(Optional)</span>
+          </div>
+          <svg class="chevron" [class.expanded]="expandedSections['roofPitch']" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <div class="accordion-content" *ngIf="expandedSections['roofPitch']">
+          <div class="pitch-inputs-grid">
+            <div class="pitch-field">
+              <label>Primary Pitch:</label>
+              <input
+                type="text"
+                formControlName="primaryPitch"
+                placeholder="eg. 6/12"
+              />
+            </div>
+            <div class="pitch-field">
+              <label>Secondary Pitch:</label>
+              <input
+                type="text"
+                formControlName="secondaryPitch"
+                placeholder="eg. 4/12"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 6: Special Instructions (Optional) -->
+      <div class="accordion-section">
+        <div class="accordion-header" (click)="toggleSection('instructions')">
+          <div class="section-title">
+            <span class="section-number">6</span>
+            <span>Special Instructions</span>
+            <span class="optional-badge">(Optional)</span>
+          </div>
+          <svg class="chevron" [class.expanded]="expandedSections['instructions']" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <div class="accordion-content" *ngIf="expandedSections['instructions']">
+          <textarea
+            formControlName="specialInstructions"
+            rows="3"
+            placeholder="Add any notes, access details, or special requests here..."
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Section 7: Upload Photos (Optional) -->
+      <div class="accordion-section">
+        <div class="accordion-header" (click)="toggleSection('photos')">
+          <div class="section-title">
+            <span class="section-number">7</span>
+            <span>Upload Photos</span>
+            <span class="optional-badge">(Optional)</span>
+          </div>
+          <svg class="chevron" [class.expanded]="expandedSections['photos']" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <div class="accordion-content" *ngIf="expandedSections['photos']">
+          <div class="file-upload-area">
+            <label class="upload-button-styled">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>Choose files</span>
+              <input
+                type="file"
+                multiple
+                accept=".jpg,.jpeg,.png,.pdf"
+                (change)="onFileSelect($event)"
+              />
+            </label>
+            <span class="file-types-badge">JPG, PNG, PDF</span>
+          </div>
+          <div class="selected-files" *ngIf="selectedFiles.length > 0">
+            <div class="file-item" *ngFor="let file of selectedFiles; let i = index">
+              <div class="file-info">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                <span>{{ file.name }}</span>
+              </div>
+              <button type="button" class="remove-file" (click)="removeFile(i)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer with Total and Buttons -->
+      <div class="form-footer">
+        <div class="total-left">
+          <span class="total-label">Total:</span>
+          <span class="total-amount">${{ getTotalPrice() }}</span>
+        </div>
+        <div class="footer-actions">
+          <div class="total-right">
+            <span class="total-label">Total:</span>
+            <span class="total-amount">${{ getTotalPrice() }}</span>
+          </div>
+          <button type="submit" class="btn-checkout" [disabled]="loading">
+            <span *ngIf="!loading">Proceed to Checkout</span>
+            <span *ngIf="loading">Processing...</span>
+          </button>
+        </div>
+        <button type="button" class="btn-cart" (click)="addToCart()" [disabled]="loading">
+          Add to Cart
         </button>
       </div>
+
     </form>
   </div>
 </div>

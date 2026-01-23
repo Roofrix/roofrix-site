@@ -51,15 +51,40 @@ export const routes: Routes = [
     component: DashboardLayout,
     canActivate: [authGuard],
     children: [
-      // Customer routes
+      // Customer routes - most specific first
+      {
+        path: 'customer/orders/products/:productId/review',
+        loadComponent: () => import('./pages/dashboard/customer/orders/products/review/review').then((m) => m.OrderReview),
+        canActivate: [customerGuard],
+      },
+      {
+        path: 'customer/orders/products/:productId',
+        loadComponent: () => import('./pages/dashboard/customer/orders/products/order/order').then((m) => m.ProductOrder),
+        canActivate: [customerGuard],
+      },
+      {
+        path: 'customer/orders/products',
+        loadComponent: () => import('./pages/dashboard/customer/orders/products/products').then((m) => m.Products),
+        canActivate: [customerGuard],
+      },
+      {
+        path: 'customer/orders/:orderId',
+        loadComponent: () => import('./pages/dashboard/customer/orders/order-detail/order-detail').then((m) => m.OrderDetail),
+        canActivate: [customerGuard],
+      },
+      {
+        path: 'customer/orders',
+        loadComponent: () => import('./pages/dashboard/customer/orders/orders').then((m) => m.CustomerOrders),
+        canActivate: [customerGuard],
+      },
       {
         path: 'customer/new-order',
         loadComponent: () => import('./pages/dashboard/customer/new-order/new-order').then((m) => m.NewOrder),
         canActivate: [customerGuard],
       },
       {
-        path: 'customer/orders',
-        loadComponent: () => import('./pages/dashboard/customer/orders/orders').then((m) => m.CustomerOrders),
+        path: 'customer/order-review',
+        loadComponent: () => import('./pages/dashboard/customer/order-review/order-review').then((m) => m.OrderReview),
         canActivate: [customerGuard],
       },
 
@@ -73,7 +98,7 @@ export const routes: Routes = [
       // Default dashboard redirect based on role (handled by guards)
       {
         path: '',
-        redirectTo: 'customer/new-order',
+        redirectTo: 'customer/orders/products',
         pathMatch: 'full',
       },
     ],

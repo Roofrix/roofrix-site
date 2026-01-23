@@ -1,5 +1,8 @@
 <header class="navbar">
-  <div class="logo">ROOFRIX</div>
+  <div class="logo">
+    <img src="assets/website/Home Page/Logo.png" alt="Roofrix" class="logo-icon" />
+    <img src="assets/website/Home Page/Logo font.png" alt="Roofrix" class="logo-text" />
+  </div>
 
   <!-- Mobile Menu Toggle -->
   <button class="mobile-menu-toggle" (click)="toggleMobileMenu()" *ngIf="(isAuthenticated$ | async) === false">
@@ -17,7 +20,7 @@
   <nav [class.mobile-open]="mobileMenuOpen">
     <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="mobileMenuOpen = false">Home</a>
     <a routerLink="/features" routerLinkActive="active" (click)="mobileMenuOpen = false">Features</a>
-    <a routerLink="/pricing" routerLinkActive="active" (click)="mobileMenuOpen = false">Pricing</a>
+    <!-- <a routerLink="/pricing" routerLinkActive="active" (click)="mobileMenuOpen = false">Pricing</a> -->
     <a routerLink="/about" routerLinkActive="active" (click)="mobileMenuOpen = false">About</a>
     <a routerLink="/contact" routerLinkActive="active" (click)="mobileMenuOpen = false">Contact</a>
   </nav>
@@ -30,55 +33,76 @@
 
   <!-- Orders dropdown and User menu when logged in -->
   <div class="logged-in-section" *ngIf="isAuthenticated$ | async">
-    <!-- Order Dropdown Menu -->
-    <div class="order-menu" *ngIf="userProfile$ | async as profile">
-      <button class="order-menu-btn" (click)="toggleOrderMenu()">
-        <span>Orders</span>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </button>
+    <ng-container *ngIf="userProfile$ | async as profile">
+      <!-- Admin: Direct header link (no dropdown) -->
+      <div class="admin-nav-links" *ngIf="profile.role === 'admin'">
+        <a routerLink="/dashboard/admin/orders" routerLinkActive="active" class="admin-nav-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+          </svg>
+          <span>Orders</span>
+        </a>
+      </div>
 
-      <div class="dropdown-menu" *ngIf="showOrderMenu">
-        <!-- Customer Menu Items -->
-        <ng-container *ngIf="profile.role === 'customer'">
-          <button (click)="navigateTo('/dashboard/customer/new-order')" class="dropdown-item">
+      <!-- Customer: Order Menu with Structure Types + Order History -->
+      <ng-container *ngIf="profile.role === 'customer'">
+        <!-- Order Button with Structure Type Dropdown -->
+        <div class="order-menu">
+          <button class="order-menu-btn" (click)="toggleOrderMenu()">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="8" x2="12" y2="16"></line>
               <line x1="8" y1="12" x2="16" y2="12"></line>
             </svg>
-            Order
-          </button>
-          <button (click)="navigateTo('/dashboard/customer/orders')" class="dropdown-item">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+            <span>Order</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
-            Order History
           </button>
-        </ng-container>
 
-        <!-- Admin Menu Items -->
-        <ng-container *ngIf="profile.role === 'admin'">
-          <button (click)="navigateTo('/dashboard/admin/orders')" class="dropdown-item">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-            </svg>
-            Order History
-          </button>
-        </ng-container>
+          <div class="dropdown-menu structure-menu" *ngIf="showOrderMenu">
+            <div class="menu-header">Select Structure Type</div>
+            <button (click)="selectStructure('basic')" class="dropdown-item structure-item">
+              <div class="structure-info">
+                <span class="structure-name">Basic Structure</span>
+                <span class="structure-size">&lt;30 SQs</span>
+              </div>
+            </button>
+            <button (click)="selectStructure('moderate')" class="dropdown-item structure-item">
+              <div class="structure-info">
+                <span class="structure-name">Moderate Structure</span>
+                <span class="structure-size">30 - 60 SQs</span>
+              </div>
+            </button>
+            <button (click)="selectStructure('complex')" class="dropdown-item structure-item">
+              <div class="structure-info">
+                <span class="structure-name">Complex/Commercial Structure</span>
+                <span class="structure-size">&gt;60 SQs</span>
+              </div>
+            </button>
+          </div>
+        </div>
 
-        <!-- Designer Menu Items -->
-        <ng-container *ngIf="profile.role === 'designer'">
-          <button (click)="navigateTo('/dashboard/designer/orders')" class="dropdown-item">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-            </svg>
-            Assigned Orders
-          </button>
-        </ng-container>
-      </div>
-    </div>
+        <!-- Order History Link -->
+        <a routerLink="/dashboard/customer/orders" routerLinkActive="active" class="header-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+          </svg>
+          <span class="desktop-text">Order History</span>
+          <span class="mobile-text">History</span>
+        </a>
+      </ng-container>
+
+      <!-- Designer: Assigned Orders Link -->
+      <ng-container *ngIf="profile.role === 'designer'">
+        <a routerLink="/dashboard/designer/orders" routerLinkActive="active" class="header-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+          </svg>
+          <span>Assigned Orders</span>
+        </a>
+      </ng-container>
+    </ng-container>
 
     <!-- User menu -->
     <div class="user-menu">

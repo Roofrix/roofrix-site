@@ -1,0 +1,57 @@
+<div class="order-page" *ngIf="product">
+  <div class="page-header">
+    <button class="btn-back" (click)="goBack()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+      Back to Products
+    </button>
+    <h1>Order Details</h1>
+    <p>Select quantity and review your order</p>
+  </div>
+
+  <div class="order-container">
+    <div class="product-details">
+      <h2>{{ product.name }}</h2>
+      <p class="description">{{ product.description }}</p>
+      <p class="unit-price">Price: <strong>${{ product.price.toFixed(2) }}</strong> per unit</p>
+
+      <div class="quantity-section">
+        <label>Quantity:</label>
+        <div class="quantity-controls">
+          <button class="qty-btn" (click)="decreaseQuantity()" [disabled]="quantity <= 1">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <span class="quantity">{{ quantity }}</span>
+          <button class="qty-btn" (click)="increaseQuantity()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="order-summary">
+      <h3>Order Summary</h3>
+      <div class="summary-row">
+        <span>{{ product.name }}</span>
+        <span>${{ product.price.toFixed(2) }}</span>
+      </div>
+      <div class="summary-row">
+        <span>Quantity</span>
+        <span>x {{ quantity }}</span>
+      </div>
+      <div class="summary-row total">
+        <span>Total</span>
+        <span>${{ getTotalPrice().toFixed(2) }}</span>
+      </div>
+      <button class="btn-submit" (click)="submitOrder()">
+        Submit Order
+      </button>
+    </div>
+  </div>
+</div>

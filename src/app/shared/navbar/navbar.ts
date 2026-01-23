@@ -74,6 +74,20 @@ export class Navbar {
   }
 
   /**
+   * Select structure type and navigate to new-order
+   */
+  selectStructure(structureType: string): void {
+    this.showOrderMenu = false;
+    this.mobileMenuOpen = false;
+    // Store the selected structure type and navigate to new-order with query param
+    sessionStorage.setItem('selectedStructureType', structureType);
+    // Use query param with timestamp to force route change detection
+    this.router.navigate(['/dashboard/customer/new-order'], {
+      queryParams: { type: structureType, t: Date.now() }
+    });
+  }
+
+  /**
    * Toggle mobile menu
    */
   toggleMobileMenu(): void {

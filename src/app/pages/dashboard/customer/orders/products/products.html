@@ -1,0 +1,24 @@
+<div class="products-page">
+  <div class="page-header">
+    <h1>Our Products</h1>
+    <p>Select a product to proceed with your order</p>
+  </div>
+
+  <div class="products-list">
+    <div class="product-card" *ngFor="let product of products" (click)="selectProduct(product)">
+      <div class="product-info">
+        <h3>{{ product.name }}</h3>
+        <p>{{ product.description }}</p>
+      </div>
+      <div class="product-footer">
+        <span class="product-price">${{ product.price.toFixed(2) }}</span>
+        <button class="btn-select">
+          Select
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

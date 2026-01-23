@@ -1,6 +1,14 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import emailjs from '@emailjs/browser';
+
+// EmailJS Configuration - Replace with your actual values from EmailJS dashboard
+const EMAILJS_CONFIG = {
+  serviceId: 'YOUR_SERVICE_ID',      // e.g., 'service_abc123'
+  templateId: 'YOUR_TEMPLATE_ID',    // e.g., 'template_xyz789'
+  publicKey: 'YOUR_PUBLIC_KEY'       // e.g., 'AbCdEfGhIjKlMnOp'
+};
 
 @Component({
   selector: 'app-contact',
@@ -15,6 +23,7 @@ export class Contact {
   contactForm: FormGroup;
   loading = false;
   submitted = false;
+  errorMessage = '';
 
   constructor() {
     this.contactForm = this.fb.group({
@@ -30,13 +39,30 @@ export class Contact {
     }
 
     this.loading = true;
+    this.errorMessage = '';
 
-    // Simulate form submission
-    setTimeout(() => {
-      console.log('Form submitted:', this.contactForm.value);
+    const templateParams = {
+      from_name: this.contactForm.value.name,
+      from_email: this.contactForm.value.email,
+      message: this.contactForm.value.message,
+      to_name: 'Roofrix Team'
+    };
+
+    emailjs.send(
+      EMAILJS_CONFIG.serviceId,
+      EMAILJS_CONFIG.templateId,
+      templateParams,
+      EMAILJS_CONFIG.publicKey
+    )
+    .then(() => {
       this.loading = false;
       this.submitted = true;
       this.contactForm.reset();
-    }, 1500);
+    })
+    .catch((error) => {
+      console.error('EmailJS Error:', error);
+      this.loading = false;
+      this.errorMessage = 'Failed to send message. Please try again later.';
+    });
   }
 }

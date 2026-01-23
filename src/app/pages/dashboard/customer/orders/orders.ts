@@ -1,7 +1,8 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
+import { filter, take } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { OrderService, Order } from '../../../../core/services/order.service';
 
@@ -12,10 +13,11 @@ import { OrderService, Order } from '../../../../core/services/order.service';
   templateUrl: './orders.html',
   styleUrl: './orders.scss',
 })
-export class CustomerOrders implements OnInit {
+export class CustomerOrders implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private orderService = inject(OrderService);
   private router = inject(Router);
+  private authSubscription: Subscription | null = null;
 
   orders$: Observable<Order[]> | null = null;
   loading = true;
@@ -25,18 +27,30 @@ export class CustomerOrders implements OnInit {
     this.loadOrders();
   }
 
-  loadOrders(): void {
-    const user = this.authService.getCurrentUser();
-
-    if (!user?.uid) {
-      this.error = 'User not authenticated';
-      this.loading = false;
-      return;
+  ngOnDestroy(): void {
+    if (this.authSubscription) {
+      this.authSubscription.unsubscribe();
     }
+  }
 
-    // Use real-time listener for customer orders
-    this.orders$ = this.orderService.customerOrdersListener(user.uid);
-    this.loading = false;
+  loadOrders(): void {
+    // Wait for auth to finish loading before getting user
+    this.authSubscription = this.authService.loading$.pipe(
+      filter(loading => !loading),
+      take(1)
+    ).subscribe(() => {
+      const user = this.authService.getCurrentUser();
+
+      if (!user?.uid) {
+        this.error = 'User not authenticated';
+        this.loading = false;
+        return;
+      }
+
+      // Use real-time listener for customer orders
+      this.orders$ = this.orderService.customerOrdersListener(user.uid);
+      this.loading = false;
+    });
   }
 
   getStatusClass(status: string): string {
@@ -81,6 +95,6 @@ export class CustomerOrders implements OnInit {
   }
 
   createNewOrder(): void {
-    this.router.navigate(['/dashboard/customer/new-order']);
+    this.router.navigate(['/dashboard/customer/orders/products']);
   }
 }

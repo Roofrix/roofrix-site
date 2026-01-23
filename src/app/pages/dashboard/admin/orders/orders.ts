@@ -1,6 +1,7 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { OrderService, Order, OrderStatus } from '../../../../core/services/order.service';
 import { UserService, UserProfile } from '../../../../core/services/user.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -12,10 +13,13 @@ import { AuthService } from '../../../../core/services/auth.service';
   templateUrl: './orders.html',
   styleUrl: './orders.scss',
 })
-export class AdminOrders implements OnInit {
+export class AdminOrders implements OnInit, OnDestroy {
   private orderService = inject(OrderService);
   private userService = inject(UserService);
   private authService = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
+  private ordersSubscription: Subscription | null = null;
 
   orders: Order[] = [];
   filteredOrders: Order[] = [];
@@ -44,17 +48,37 @@ export class AdminOrders implements OnInit {
     this.loadDesigners();
   }
 
-  async loadOrders(): Promise<void> {
-    try {
-      this.loading = true;
-      this.orders = await this.orderService.getAllOrders();
-      this.filteredOrders = [...this.orders];
-      this.loading = false;
-    } catch (err) {
-      console.error('Error loading orders:', err);
-      this.error = 'Failed to load orders';
-      this.loading = false;
+  ngOnDestroy(): void {
+    // Clean up subscription to prevent memory leaks
+    if (this.ordersSubscription) {
+      this.ordersSubscription.unsubscribe();
     }
+  }
+
+  loadOrders(): void {
+    this.loading = true;
+    this.error = '';
+
+    // Use real-time listener with limit for better performance
+    this.ordersSubscription = this.orderService.allOrdersListener(100).subscribe({
+      next: (orders) => {
+        // Run inside NgZone to ensure change detection triggers
+        this.ngZone.run(() => {
+          this.orders = orders;
+          this.filterOrders();
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
+      },
+      error: (err) => {
+        this.ngZone.run(() => {
+          console.error('Error loading orders:', err);
+          this.error = 'Failed to load orders';
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
+      }
+    });
   }
 
   async loadDesigners(): Promise<void> {
@@ -75,7 +99,8 @@ export class AdminOrders implements OnInit {
         order.orderNumber.toLowerCase().includes(query) ||
         order.customerName.toLowerCase().includes(query) ||
         order.customerEmail.toLowerCase().includes(query) ||
-        order.projectName.toLowerCase().includes(query)
+        (order.projectName || '').toLowerCase().includes(query) ||
+        order.projectAddress.toLowerCase().includes(query)
       );
     }
 
@@ -122,11 +147,11 @@ export class AdminOrders implements OnInit {
         this.newStatus,
         user.uid,
         user.email || 'admin',
+        'admin',
         this.statusNotes || undefined
       );
 
-      // Reload orders to reflect changes
-      await this.loadOrders();
+      // Orders will auto-update via real-time listener
       this.closeStatusModal();
     } catch (err) {
       console.error('Error updating status:', err);
@@ -157,17 +182,19 @@ export class AdminOrders implements OnInit {
       const designer = this.designers.find(d => d.id === this.selectedDesignerId);
       if (!designer) return;
 
+      const user = this.authService.getCurrentUser();
       await this.orderService.assignDesigner(
         this.selectedOrder.id,
         designer.id,
-        designer.email
+        designer.email,
+        user?.uid || '',
+        user?.email || 'admin'
       );
 
       // Update designer's assigned orders
       await this.userService.assignOrderToDesigner(designer.id, this.selectedOrder.id);
 
-      // Reload orders
-      await this.loadOrders();
+      // Orders will auto-update via real-time listener
       this.closeDesignerModal();
     } catch (err) {
       console.error('Error assigning designer:', err);

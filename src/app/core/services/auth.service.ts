@@ -131,9 +131,12 @@ export class AuthService {
           return { success: true };
         }
       }),
-      catchError((error) => {
+      catchError((error: any) => {
+        console.error('Firebase Sign In Error:', error);
+        console.error('Error code:', error?.code);
+        console.error('Error message:', error?.message);
         this.loadingSubject.next(false);
-        const errorMessage = getFirebaseErrorMessage(error.code);
+        const errorMessage = getFirebaseErrorMessage(error?.code || 'unknown');
         return of({ success: false, error: errorMessage });
       })
     );

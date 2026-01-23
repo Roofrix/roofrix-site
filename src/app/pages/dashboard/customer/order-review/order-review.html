@@ -1,0 +1,122 @@
+<div class="review-page">
+  <!-- Review State -->
+  <ng-container *ngIf="!orderConfirmed && orderData">
+    <div class="page-header">
+      <button class="btn-back" (click)="goBack()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        Back to Order
+      </button>
+      <h1>Order Review</h1>
+      <p>Please review your order before confirming</p>
+    </div>
+
+    <!-- Error Message -->
+    <div class="alert alert-error" *ngIf="errorMessage">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>{{ errorMessage }}</span>
+    </div>
+
+    <div class="review-card">
+      <div class="card-header">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>
+          <rect x="9" y="3" width="6" height="4" rx="1"></rect>
+        </svg>
+        <h2>Order Summary</h2>
+      </div>
+
+      <div class="order-details">
+        <div class="detail-section">
+          <h3>Property Address</h3>
+          <p>{{ orderData.address }}</p>
+          <p class="coordinates" *ngIf="orderData.latitude && orderData.longitude">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            Lat: {{ orderData.latitude.toFixed(6) }}, Lng: {{ orderData.longitude.toFixed(6) }}
+          </p>
+        </div>
+
+        <div class="detail-section">
+          <h3>Report Type</h3>
+          <div class="detail-row">
+            <span>{{ orderData.reportType.name }}</span>
+            <span>${{ orderData.reportType.price.toFixed(2) }}</span>
+          </div>
+        </div>
+
+        <div class="detail-section" *ngIf="orderData.addons && orderData.addons.length > 0">
+          <h3>Addons</h3>
+          <div class="detail-row" *ngFor="let addon of orderData.addons">
+            <span>{{ addon.name }}</span>
+            <span>${{ addon.price.toFixed(2) }}</span>
+          </div>
+        </div>
+
+        <div class="detail-section" *ngIf="orderData.structureCategoryName">
+          <h3>Structure Category</h3>
+          <p class="structure-category-badge">
+            {{ orderData.structureCategoryName }}
+            <span class="sq-range" *ngIf="orderData.structureCategorySqRange">({{ orderData.structureCategorySqRange }})</span>
+          </p>
+        </div>
+
+        <div class="summary-section">
+          <div class="summary-line">
+            <span>Subtotal</span>
+            <span>${{ orderData.basePrice.toFixed(2) }}</span>
+          </div>
+          <div class="summary-line" *ngIf="orderData.addonsTotal > 0">
+            <span>Addons</span>
+            <span>${{ orderData.addonsTotal.toFixed(2) }}</span>
+          </div>
+          <div class="summary-line total">
+            <span>Total</span>
+            <span>${{ orderData.totalPrice.toFixed(2) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="payment-note">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>Payment integration coming soon. Your order will be processed for review.</span>
+      </div>
+
+      <button class="btn-confirm" (click)="confirmOrder()" [disabled]="loading">
+        <span *ngIf="!loading">Confirm Order</span>
+        <span *ngIf="loading">Processing...</span>
+      </button>
+    </div>
+  </ng-container>
+
+  <!-- Confirmed State -->
+  <ng-container *ngIf="orderConfirmed">
+    <div class="confirmation-card">
+      <div class="success-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+      </div>
+      <h1>Order Confirmed!</h1>
+      <p class="order-number">Order Number: <strong>{{ orderNumber }}</strong></p>
+      <p class="thank-you">Thank you for your order. We will process it shortly.</p>
+
+      <div class="confirmation-actions">
+        <button class="btn-primary" (click)="goToOrders()">View Order History</button>
+        <button class="btn-secondary" (click)="goToProducts()">Continue Shopping</button>
+      </div>
+    </div>
+  </ng-container>
+</div>

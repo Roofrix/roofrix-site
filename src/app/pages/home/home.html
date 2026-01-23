@@ -4,34 +4,31 @@
     <div class="hero-left">
       <h1>Accurate Roof Measurements in Minutes</h1>
       <p>
-        Get precise, aerial roof measurements for insurance claims,
-        adjusters, and contractors. Fast, reliable, and accurate.
+        Get precise, aerial roof measurements for insurance claims, adjusters, and contractors.
+        Fast, reliable, and accurate.
       </p>
 
       <div class="actions">
-        <button class="primary">Order Now</button>
-        <button class="secondary">See How it Works</button>
+        <button class="primary" (click)="orderNow()">Order Now</button>
+        <button class="secondary" (click)="scrollToHowItWorks()">See How it Works</button>
       </div>
-    </div>
-
-    <!-- <div class="hero-right">
-      <img src="assets/images/main image.jpg" alt="3D Roof Visualization" />
-    </div> -->
-  </div>
-
-  <!-- Format Badges -->
-  <div class="format-badges">
-    <div class="badge">
-      <div class="badge-icon">ESX</div>
-    </div>
-    <div class="badge">
-      <div class="badge-icon">PDF</div>
-    </div>
-    <div class="badge">
-      <div class="badge-icon">XML</div>
     </div>
   </div>
 </section>
+
+<!-- Format Badges -->
+<div class="format-badges">
+  <div class="badge">
+    <div class="badge-icon">ESX</div>
+  </div>
+  <div class="badge">
+    <div class="badge-icon">PDF</div>
+  </div>
+  <div class="badge">
+    <div class="badge-icon">XML</div>
+  </div>
+</div>
+
 <!-- TRUSTED -->
 <section class="trusted">
   <span class="line"></span>
@@ -39,13 +36,14 @@
   <span class="line"></span>
 </section>
 
+<!-- FEATURES -->
 <section class="features">
   <div class="feature">
     <img src="assets/images/Aerial Precision.png" alt="Aerial Precision" />
     <h4>Aerial Precision</h4>
     <p>
-      Utilizing advanced aerial technology for accurate roof measurements —
-      without manual inspections.
+      Utilizing advanced aerial technology for accurate roof measurements — without manual
+      inspections.
     </p>
   </div>
 
@@ -54,10 +52,7 @@
   <div class="feature">
     <img src="assets/images/fast results.png" alt="Fast Results" />
     <h4>Fast Results</h4>
-    <p>
-      Get detailed roof reports in minutes, not days.
-      Ideal for adjusters and contractors.
-    </p>
+    <p>Get detailed roof reports in minutes, not days. Ideal for adjusters and contractors.</p>
   </div>
 
   <div class="divider"></div>
@@ -65,61 +60,106 @@
   <div class="feature">
     <img src="assets/images/insurence approved.png" alt="Insurance Approved" />
     <h4>Insurance Approved</h4>
-    <p>
-      Our reports meet the stringent requirements of insurance companies
-      and adjusters.
-    </p>
+    <p>Our reports meet the stringent requirements of insurance companies and adjusters.</p>
   </div>
 </section>
 
 <!-- SAMPLE REPORT -->
 <section class="report">
   <div class="left">
-    <h2>Sample Roof Report</h2>
-    <p class="desc">
-      Accurate, detailed PDF reports for insurance claims and adjustments.
-    </p>
+    <h2>Most Requested Services</h2>
+    <p class="desc">Professional reports trusted by contractors and insurance adjusters nationwide.</p>
 
-    <div class="step">
-      <div class="step-number">1</div>
-      <div class="step-content">
-        <strong>Enter Address</strong>
-        <p>Simply enter the property's address to begin.</p>
-      </div>
-    </div>
-
-    <div class="step">
-      <div class="step-number">2</div>
-      <div class="step-content">
-        <strong>We Generate the Report</strong>
-        <p>Our drones capture precise measurements from the sky.</p>
-      </div>
-    </div>
-
-    <div class="step">
-      <div class="step-number">3</div>
-      <div class="step-content">
-        <strong>Download & Use</strong>
-        <p>Receive a detailed PDF report ready for insurance claims.</p>
+    <div class="services-list">
+      <div class="service-card" *ngFor="let service of services">
+        <div class="service-icon">
+          <img [src]="service.icon" [alt]="service.title" />
+        </div>
+        <h4>{{ service.title }}</h4>
       </div>
     </div>
   </div>
 
   <div class="right">
-    <div class="report-preview">
-      <img src="assets/images/report-preview.png" alt="Report Preview" class="report-image active" />
+    <div class="header">
+      <h2>Sample Roof Report</h2>
     </div>
+
+    <!-- Slider Container -->
+    <div class="slider-container">
+      <!-- Navigation Arrows -->
+      <button class="slider-arrow prev" (click)="prevSlide()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+
+      <div class="report-preview">
+        <img
+          *ngFor="let image of reportImages; let i = index"
+          [src]="image.src"
+          [alt]="image.alt"
+          class="report-image"
+          [class.active]="isActiveSlide(i)"
+          [class.prev]="isPrevSlide(i)"
+        />
+      </div>
+
+      <button class="slider-arrow next" (click)="nextSlide()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Dots Navigation -->
     <div class="preview-dots">
-      <span class="dot active"></span>
-      <span class="dot"></span>
-      <span class="dot"></span>
+      <span
+        *ngFor="let image of reportImages; let i = index"
+        class="dot"
+        [class.active]="isActiveSlide(i)"
+        (click)="goToSlide(i)"
+      ></span>
     </div>
   </div>
 </section>
 
-<!-- EXPORT -->
-<section class="export">
-  <div class="chip">ESX</div>
-  <div class="chip active">PDF</div>
-  <div class="chip">XML</div>
+
+
+<!-- HOW IT WORKS -->
+<section class="how-it-works" id="how-it-works">
+  <h2>HOW IT WORKS</h2>
+  <p class="subtitle">Get your roof measurement report in just three simple steps.</p>
+
+  <div class="steps">
+    <div class="step-card">
+      <div class="step-icon">
+        <img src="assets/website/how it works/order now.png" alt="Order" />
+      </div>
+      <div class="step-text">
+        <h4>Click Order Now</h4>
+        <p>Enter the property address and required details, then submit your order.</p>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-icon">
+        <img src="assets/website/how it works/we gnrte report.png" alt="Report" />
+      </div>
+      <div class="step-text">
+        <h4>We Generate the Report</h4>
+        <p>We generate a precise roof measurement report directly sent to your email.</p>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-icon">
+        <img src="assets/website/how it works/downd n use.png" alt="Download" />
+      </div>
+      <div class="step-text">
+        <h4>Download & Use</h4>
+        <p>Download instantly and apply it for estimating, insurance, or project planning.</p>
+      </div>
+    </div>
+  </div>
 </section>

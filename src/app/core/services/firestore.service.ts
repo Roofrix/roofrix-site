@@ -13,6 +13,7 @@ import {
   where,
   orderBy,
   limit,
+  startAfter,
   Timestamp,
   QueryConstraint,
   onSnapshot,
@@ -218,7 +219,30 @@ export class FirestoreService {
     return {
       where,
       orderBy,
-      limit
+      limit,
+      startAfter
     };
+  }
+
+  /**
+   * Get documents with pagination support
+   */
+  async getDocumentsWithPagination<T>(
+    collectionPath: string,
+    queryConstraints: QueryConstraint[] = []
+  ): Promise<T[]> {
+    try {
+      const colRef = collection(this.db, collectionPath);
+      const q = queryConstraints.length > 0 ? query(colRef, ...queryConstraints) : colRef;
+      const querySnapshot = await getDocs(q);
+
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as T));
+    } catch (error) {
+      console.error('Error getting paginated documents:', error);
+      throw error;
+    }
   }
 }

@@ -113,11 +113,19 @@ export function getFirebaseErrorMessage(errorCode: string): string {
     'auth/user-not-found': 'No account found with this email. Please sign up first.',
     'auth/wrong-password': 'Incorrect password. Please try again.',
     'auth/invalid-credential': 'Invalid email or password. Please check your credentials.',
+    'auth/invalid-login-credentials': 'Invalid email or password. Please check your credentials.',
     'auth/network-request-failed': 'Network error. Please check your internet connection and try again.',
     'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
     'auth/popup-closed-by-user': 'Sign-in popup was closed. Please try again.',
     'auth/cancelled-popup-request': 'Sign-in was cancelled. Please try again.',
+    'auth/missing-password': 'Please enter your password.',
+    'auth/missing-email': 'Please enter your email address.',
   };
 
-  return errorMessages[errorCode] || 'An error occurred. Please try again.';
+  // Log unknown error codes for debugging
+  if (!errorMessages[errorCode]) {
+    console.warn('Unknown Firebase error code:', errorCode);
+  }
+
+  return errorMessages[errorCode] || `Authentication failed. Please check your credentials and try again.`;
 }

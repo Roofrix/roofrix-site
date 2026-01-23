@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { Observable } from 'rxjs';
@@ -32,12 +32,24 @@ export class DashboardLayout {
     });
   }
 
-  toggleUserMenu(): void {
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    // Check if click is outside menus
+    if (!target.closest('.order-menu') && !target.closest('.user-menu')) {
+      this.showOrderMenu = false;
+      this.showUserMenu = false;
+    }
+  }
+
+  toggleUserMenu(event: MouseEvent): void {
+    event.stopPropagation();
     this.showUserMenu = !this.showUserMenu;
     this.showOrderMenu = false;
   }
 
-  toggleOrderMenu(): void {
+  toggleOrderMenu(event: MouseEvent): void {
+    event.stopPropagation();
     this.showOrderMenu = !this.showOrderMenu;
     this.showUserMenu = false;
   }
@@ -63,5 +75,16 @@ export class DashboardLayout {
     this.showOrderMenu = false;
     this.mobileMenuOpen = false;
     this.router.navigate([path]);
+  }
+
+  selectStructure(structureType: string): void {
+    this.showOrderMenu = false;
+    this.mobileMenuOpen = false;
+    // Store the selected structure type and navigate to new-order with query param
+    sessionStorage.setItem('selectedStructureType', structureType);
+    // Use query param with timestamp to force route change detection
+    this.router.navigate(['/dashboard/customer/new-order'], {
+      queryParams: { type: structureType, t: Date.now() }
+    });
   }
 }

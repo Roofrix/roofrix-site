@@ -15,10 +15,37 @@
   color: #fff;
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000; // High z-index to stay above Leaflet map
 
   @media (max-width: 768px) {
     padding: 0 20px;
+  }
+
+  > div:first-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+
+    img:first-child {
+      height: 36px;
+      width: auto;
+    }
+
+    img:last-child {
+      height: 20px;
+      width: auto;
+    }
+
+    @media (max-width: 768px) {
+      img:first-child {
+        height: 30px;
+      }
+      img:last-child {
+        height: 16px;
+      }
+    }
   }
 
   .logo {
@@ -107,6 +134,118 @@
   }
 }
 
+// Admin Navigation Links (Direct header links for admin users)
+.admin-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .admin-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    &.active {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+    }
+
+    svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) {
+      padding: 8px 12px;
+      font-size: 13px;
+
+      span {
+        display: none;
+      }
+    }
+  }
+}
+
+// Header Link (Order History, etc.)
+.header-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: #fff;
+  text-decoration: none;
+  font-size: 14px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  &.active {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  svg {
+    opacity: 0.8;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  .desktop-text {
+    display: inline;
+  }
+
+  .mobile-text {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    padding: 8px 10px;
+    font-size: 12px;
+    gap: 4px;
+
+    .desktop-text {
+      display: none;
+    }
+
+    .mobile-text {
+      display: inline;
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    padding: 6px 8px;
+
+    .mobile-text {
+      font-size: 11px;
+    }
+  }
+}
+
 // Order Menu
 .order-menu {
   position: relative;
@@ -116,31 +255,59 @@
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    border: none;
     border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
     color: #fff;
+    font-weight: 500;
     transition: all 0.2s ease;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
     }
 
     @media (max-width: 768px) {
-      padding: 8px;
-      font-size: 13px;
+      padding: 8px 10px;
+      font-size: 12px;
+      gap: 4px;
 
+      // Keep the "Order" text visible on mobile for clarity
       span {
+        display: inline;
+      }
+
+      // Hide the dropdown chevron on mobile to save space
+      svg:last-child {
         display: none;
       }
     }
 
+    @media (max-width: 480px) {
+      padding: 6px 8px;
+
+      span {
+        font-size: 11px;
+      }
+    }
+
     svg {
-      opacity: 0.7;
-      width: 16px;
-      height: 16px;
+      opacity: 0.9;
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+
+      &:last-child {
+        width: 16px;
+        height: 16px;
+      }
+
+      @media (max-width: 768px) {
+        width: 16px;
+        height: 16px;
+      }
     }
   }
 
@@ -149,11 +316,43 @@
     top: calc(100% + 8px);
     left: 0;
     background: #fff;
-    border-radius: 8px;
+    border-radius: 10px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    min-width: 200px;
+    min-width: 260px;
     z-index: 1000;
     overflow: hidden;
+
+    &.structure-menu {
+      min-width: 280px;
+    }
+
+    @media (max-width: 768px) {
+      // Position from right on mobile to prevent overflow
+      left: auto;
+      right: 0;
+      min-width: 250px;
+    }
+
+    @media (max-width: 480px) {
+      // Fixed position for very small screens
+      position: fixed;
+      top: 78px;
+      left: 10px;
+      right: 10px;
+      min-width: auto;
+      width: calc(100% - 20px);
+    }
+  }
+
+  .menu-header {
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .dropdown-item {
@@ -179,6 +378,40 @@
       flex-shrink: 0;
       width: 18px;
       height: 18px;
+    }
+
+    &.structure-item {
+      padding: 14px 16px;
+      border-bottom: 1px solid #f1f5f9;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &:hover {
+        background: #eff6ff;
+
+        .structure-name {
+          color: #1d4ed8;
+        }
+      }
+
+      .structure-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .structure-name {
+        font-weight: 500;
+        color: #1e293b;
+        transition: color 0.2s;
+      }
+
+      .structure-size {
+        font-size: 12px;
+        color: #64748b;
+      }
     }
   }
 }

@@ -4,50 +4,153 @@ import { Observable } from 'rxjs';
 
 export type OrderStatus = 'pending' | 'in_progress' | 'review' | 'completed' | 'cancelled';
 
+/**
+ * Snapshot of selected report type at time of order
+ * (Prices are captured so historical orders reflect original pricing)
+ */
+export interface OrderReportType {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+}
+
+/**
+ * Snapshot of selected addon at time of order
+ */
+export interface OrderAddon {
+  id: string;
+  name: string;
+  price: number;
+}
+
+/**
+ * Status change entry for timeline
+ */
+export interface StatusTimelineEntry {
+  status: OrderStatus;
+  changedAt: any;
+  changedBy: string;
+  changedByEmail: string;
+  changedByRole: 'admin' | 'customer' | 'designer' | 'system';
+  notes?: string;
+}
+
+/**
+ * Main Order interface
+ */
 export interface Order {
   id: string;
   orderNumber: string; // e.g., "ORD-2024-0001"
+
+  // Customer info
   customerId: string;
   customerEmail: string;
   customerName: string;
+
+  // Assigned designer
   assignedDesignerId?: string;
   assignedDesignerEmail?: string;
 
-  // Order details
-  projectName: string;
+  // Address
   projectAddress: string;
-  projectDescription?: string;
-  roofType?: string;
-  estimatedArea?: number;
 
-  // Status tracking
+  // Location coordinates
+  latitude?: number | null;
+  longitude?: number | null;
+  location?: { lat: number; lng: number; address: string } | null;
+
+  // Selected Report Type (snapshot with price at time of order)
+  reportType: OrderReportType;
+
+  // Selected Addons (snapshot with prices at time of order)
+  addons: OrderAddon[];
+
+  // Structure Category (Basic, Moderate, Complex)
+  structureCategory: string;
+  structureCategoryName: string;
+  structureCategorySqRange: string;
+
+  // Roof Pitch (optional)
+  primaryPitch?: string;
+  secondaryPitch?: string;
+
+  // Special Instructions
+  specialInstructions?: string;
+
+  // Pricing (calculated at time of order)
+  basePrice: number;       // Report type price
+  addonsTotal: number;     // Sum of addon prices
+  totalPrice: number;      // basePrice + addonsTotal
+
+  // Current Status
   status: OrderStatus;
-  currentStatusUpdatedAt: any;
-  currentStatusUpdatedBy: string;
+
+  // Status Timeline (embedded array for quick access)
+  statusTimeline: StatusTimelineEntry[];
 
   // File references
-  siteImages: string[]; // Firebase Storage URLs
-  designFiles: string[]; // Firebase Storage URLs
+  siteImages: string[];    // Firebase Storage URLs (customer uploads)
+  designFiles: string[];   // Firebase Storage URLs (designer uploads)
 
   // Timestamps
   createdAt: any;
   updatedAt: any;
   completedAt?: any;
 
-  // Additional metadata
-  notes?: string;
-  priority?: 'low' | 'medium' | 'high';
-  estimatedCompletionDate?: any;
+  // Priority (auto-set to 'high' if Rush addon selected)
+  priority: 'low' | 'medium' | 'high';
+
+  // Legacy fields (for backward compatibility)
+  projectName?: string;
+  projectDescription?: string;
+  roofType?: string;
+  estimatedArea?: number;
+  structureType?: string; // Legacy - use structureCategory instead
 }
 
-export interface StatusHistoryEntry {
-  id: string;
-  orderId: string;
-  status: OrderStatus;
-  changedBy: string;
-  changedByEmail: string;
-  changedAt: any;
-  notes?: string;
+/**
+ * Data required to create a new order
+ */
+export interface CreateOrderData {
+  // Customer info
+  customerId: string;
+  customerEmail: string;
+  customerName: string;
+
+  // Address
+  projectAddress: string;
+
+  // Location coordinates
+  latitude?: number | null;
+  longitude?: number | null;
+  location?: { lat: number; lng: number; address: string } | null;
+
+  // Selected Report Type (with current price)
+  reportType: OrderReportType;
+
+  // Selected Addons (with current prices)
+  addons: OrderAddon[];
+
+  // Structure Category (Basic, Moderate, Complex)
+  structureCategory: string;
+  structureCategoryName: string;
+  structureCategorySqRange: string;
+
+  // Roof Pitch (optional)
+  primaryPitch?: string;
+  secondaryPitch?: string;
+
+  // Special Instructions
+  specialInstructions?: string;
+
+  // Calculated pricing
+  basePrice: number;
+  addonsTotal: number;
+  totalPrice: number;
+
+  // Priority
+  priority: 'low' | 'medium' | 'high';
 }
 
 export interface OrderMessage {
@@ -63,18 +166,6 @@ export interface OrderMessage {
   readBy: string[]; // Array of user IDs who have read the message
 }
 
-export interface CreateOrderData {
-  customerId: string;
-  customerEmail: string;
-  customerName: string;
-  projectName: string;
-  projectAddress: string;
-  projectDescription?: string;
-  roofType?: string;
-  estimatedArea?: number;
-  priority?: 'low' | 'medium' | 'high';
-}
-
 @Injectable({
   providedIn: 'root'
 })
@@ -82,7 +173,6 @@ export class OrderService {
   private firestoreService = inject(FirestoreService);
 
   private readonly ORDERS_COLLECTION = 'orders';
-  private readonly STATUS_HISTORY_COLLECTION = 'statusHistory';
   private readonly MESSAGES_COLLECTION = 'messages';
 
   /**
@@ -101,28 +191,52 @@ export class OrderService {
     try {
       const timestamp = this.firestoreService.getTimestamp();
       const orderNumber = this.generateOrderNumber();
-
-      // Generate a unique ID for the order
       const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Create initial status timeline entry
+      const initialStatusEntry: StatusTimelineEntry = {
+        status: 'pending',
+        changedAt: timestamp,
+        changedBy: createdBy,
+        changedByEmail: data.customerEmail,
+        changedByRole: 'customer',
+        notes: 'Order created'
+      };
+
+      // Generate project name from report type and address
+      const projectName = `${data.reportType.name} - ${data.projectAddress}`;
 
       const order: Omit<Order, 'id'> = {
         orderNumber,
         customerId: data.customerId,
         customerEmail: data.customerEmail,
         customerName: data.customerName,
-        projectName: data.projectName,
         projectAddress: data.projectAddress,
-        projectDescription: data.projectDescription || '',
-        roofType: data.roofType || '',
-        estimatedArea: data.estimatedArea || 0,
+        latitude: data.latitude || null,
+        longitude: data.longitude || null,
+        location: data.location || null,
+        reportType: data.reportType,
+        addons: data.addons,
+        // Structure category
+        structureCategory: data.structureCategory,
+        structureCategoryName: data.structureCategoryName,
+        structureCategorySqRange: data.structureCategorySqRange,
+        primaryPitch: data.primaryPitch || '',
+        secondaryPitch: data.secondaryPitch || '',
+        specialInstructions: data.specialInstructions || '',
+        basePrice: data.basePrice,
+        addonsTotal: data.addonsTotal,
+        totalPrice: data.totalPrice,
         status: 'pending',
-        currentStatusUpdatedAt: timestamp,
-        currentStatusUpdatedBy: createdBy,
+        statusTimeline: [initialStatusEntry],
         siteImages: [],
         designFiles: [],
         createdAt: timestamp,
         updatedAt: timestamp,
-        priority: data.priority || 'medium'
+        priority: data.priority,
+        // Legacy fields
+        projectName: projectName,
+        projectDescription: data.specialInstructions || ''
       };
 
       await this.firestoreService.setDocument<Omit<Order, 'id'>>(
@@ -130,14 +244,6 @@ export class OrderService {
         orderId,
         order
       );
-
-      // Create initial status history entry
-      await this.addStatusHistory(orderId, {
-        status: 'pending',
-        changedBy: createdBy,
-        changedByEmail: data.customerEmail,
-        notes: 'Order created'
-      });
 
       return orderId;
     } catch (error) {
@@ -162,23 +268,40 @@ export class OrderService {
   }
 
   /**
-   * Update order status
+   * Update order status with timeline entry
    */
   async updateOrderStatus(
     orderId: string,
     newStatus: OrderStatus,
     changedBy: string,
     changedByEmail: string,
+    changedByRole: 'admin' | 'customer' | 'designer',
     notes?: string
   ): Promise<void> {
     try {
       const timestamp = this.firestoreService.getTimestamp();
 
-      // Update order status
+      // Get current order to append to timeline
+      const order = await this.getOrder(orderId);
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
+      // Create new timeline entry
+      const timelineEntry: StatusTimelineEntry = {
+        status: newStatus,
+        changedAt: timestamp,
+        changedBy,
+        changedByEmail,
+        changedByRole,
+        notes: notes || ''
+      };
+
+      // Update order with new status and timeline
       const updateData: Partial<Order> = {
         status: newStatus,
-        currentStatusUpdatedAt: timestamp,
-        currentStatusUpdatedBy: changedBy
+        statusTimeline: [...order.statusTimeline, timelineEntry],
+        updatedAt: timestamp
       };
 
       if (newStatus === 'completed') {
@@ -190,14 +313,6 @@ export class OrderService {
         orderId,
         updateData
       );
-
-      // Add to status history
-      await this.addStatusHistory(orderId, {
-        status: newStatus,
-        changedBy,
-        changedByEmail,
-        notes
-      });
     } catch (error) {
       console.error('Error updating order status:', error);
       throw error;
@@ -210,15 +325,37 @@ export class OrderService {
   async assignDesigner(
     orderId: string,
     designerId: string,
-    designerEmail: string
+    designerEmail: string,
+    assignedBy: string,
+    assignedByEmail: string
   ): Promise<void> {
     try {
+      const timestamp = this.firestoreService.getTimestamp();
+
+      // Get current order
+      const order = await this.getOrder(orderId);
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
+      // Create timeline entry for assignment
+      const timelineEntry: StatusTimelineEntry = {
+        status: order.status,
+        changedAt: timestamp,
+        changedBy: assignedBy,
+        changedByEmail: assignedByEmail,
+        changedByRole: 'admin',
+        notes: `Assigned to designer: ${designerEmail}`
+      };
+
       await this.firestoreService.updateDocument(
         this.ORDERS_COLLECTION,
         orderId,
         {
           assignedDesignerId: designerId,
-          assignedDesignerEmail: designerEmail
+          assignedDesignerEmail: designerEmail,
+          statusTimeline: [...order.statusTimeline, timelineEntry],
+          updatedAt: timestamp
         }
       );
     } catch (error) {
@@ -228,53 +365,14 @@ export class OrderService {
   }
 
   /**
-   * Add status history entry (private helper)
+   * Get status timeline for an order
    */
-  private async addStatusHistory(
-    orderId: string,
-    data: {
-      status: OrderStatus;
-      changedBy: string;
-      changedByEmail: string;
-      notes?: string;
-    }
-  ): Promise<void> {
+  async getStatusTimeline(orderId: string): Promise<StatusTimelineEntry[]> {
     try {
-      const timestamp = this.firestoreService.getTimestamp();
-      const historyId = `history_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-      const historyEntry: Omit<StatusHistoryEntry, 'id'> = {
-        orderId,
-        status: data.status,
-        changedBy: data.changedBy,
-        changedByEmail: data.changedByEmail,
-        changedAt: timestamp,
-        notes: data.notes || ''
-      };
-
-      await this.firestoreService.setDocument<Omit<StatusHistoryEntry, 'id'>>(
-        `${this.ORDERS_COLLECTION}/${orderId}/${this.STATUS_HISTORY_COLLECTION}`,
-        historyId,
-        historyEntry
-      );
+      const order = await this.getOrder(orderId);
+      return order?.statusTimeline || [];
     } catch (error) {
-      console.error('Error adding status history:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get status history for an order
-   */
-  async getStatusHistory(orderId: string): Promise<StatusHistoryEntry[]> {
-    try {
-      const { orderBy } = this.firestoreService.getQueryHelpers();
-      return await this.firestoreService.getDocuments<StatusHistoryEntry>(
-        `${this.ORDERS_COLLECTION}/${orderId}/${this.STATUS_HISTORY_COLLECTION}`,
-        [orderBy('changedAt', 'desc')]
-      );
-    } catch (error) {
-      console.error('Error getting status history:', error);
+      console.error('Error getting status timeline:', error);
       throw error;
     }
   }
@@ -325,6 +423,17 @@ export class OrderService {
       console.error('Error getting all orders:', error);
       throw error;
     }
+  }
+
+  /**
+   * Real-time listener for all orders (Admin) - with limit for performance
+   */
+  allOrdersListener(limitCount: number = 50): Observable<Order[]> {
+    const { orderBy, limit } = this.firestoreService.getQueryHelpers();
+    return this.firestoreService.collectionListener<Order>(
+      this.ORDERS_COLLECTION,
+      [orderBy('createdAt', 'desc'), limit(limitCount)]
+    );
   }
 
   /**
@@ -388,7 +497,7 @@ export class OrderService {
         attachments: attachments || [],
         createdAt: timestamp,
         isRead: false,
-        readBy: [senderId] // Sender has already "read" their own message
+        readBy: [senderId]
       };
 
       await this.firestoreService.setDocument<Omit<OrderMessage, 'id'>>(
@@ -414,32 +523,6 @@ export class OrderService {
       );
     } catch (error) {
       console.error('Error getting order messages:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Mark message as read
-   */
-  async markMessageAsRead(orderId: string, messageId: string, userId: string): Promise<void> {
-    try {
-      const message = await this.firestoreService.getDocument<OrderMessage>(
-        `${this.ORDERS_COLLECTION}/${orderId}/${this.MESSAGES_COLLECTION}`,
-        messageId
-      );
-
-      if (message && !message.readBy.includes(userId)) {
-        await this.firestoreService.updateDocument(
-          `${this.ORDERS_COLLECTION}/${orderId}/${this.MESSAGES_COLLECTION}`,
-          messageId,
-          {
-            readBy: [...message.readBy, userId],
-            isRead: true
-          }
-        );
-      }
-    } catch (error) {
-      console.error('Error marking message as read:', error);
       throw error;
     }
   }

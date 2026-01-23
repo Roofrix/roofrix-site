@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
@@ -19,6 +19,8 @@ export class SignIn implements OnInit {
   private userService = inject(UserService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
 
   signInForm!: FormGroup;
   loading = false;
@@ -60,7 +62,9 @@ export class SignIn implements OnInit {
 
     this.authService.signIn(email, password).pipe(
       switchMap((result) => {
+        console.log('Sign in result:', result);
         if (!result.success) {
+          console.log('Sign in failed with error:', result.error);
           throw new Error(result.error || 'Sign in failed');
         }
         // Get current user to determine role-based redirect
@@ -75,29 +79,36 @@ export class SignIn implements OnInit {
       })
     ).subscribe({
       next: (profile) => {
-        if (!profile) {
-          this.errorMessage = 'User profile not found';
-          this.loading = false;
-          return;
-        }
-
-        // Redirect based on return URL or user role
-        if (this.returnUrl) {
-          this.router.navigate([this.returnUrl]);
-        } else {
-          // Role-based default redirect
-          if (profile.role === 'admin') {
-            this.router.navigate(['/dashboard/admin/orders']);
-          } else if (profile.role === 'designer') {
-            this.router.navigate(['/dashboard/designer/orders']);
-          } else {
-            this.router.navigate(['/dashboard/customer/new-order']);
+        this.ngZone.run(() => {
+          if (!profile) {
+            this.errorMessage = 'User profile not found';
+            this.loading = false;
+            this.cdr.detectChanges();
+            return;
           }
-        }
+
+          // Redirect based on return URL or user role
+          if (this.returnUrl) {
+            this.router.navigate([this.returnUrl]);
+          } else {
+            // Role-based default redirect
+            if (profile.role === 'admin') {
+              this.router.navigate(['/dashboard/admin/orders']);
+            } else if (profile.role === 'designer') {
+              this.router.navigate(['/dashboard/designer/orders']);
+            } else {
+              this.router.navigate(['/dashboard/customer/new-order']);
+            }
+          }
+        });
       },
       error: (err) => {
-        this.errorMessage = err.message || 'An unexpected error occurred. Please try again.';
-        this.loading = false;
+        this.ngZone.run(() => {
+          console.log('Sign in subscribe error:', err);
+          this.errorMessage = err.message || 'An unexpected error occurred. Please try again.';
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
       }
     });
   }

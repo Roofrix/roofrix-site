@@ -1,0 +1,221 @@
+<div class="order-detail-page">
+  <!-- Back Button & Header -->
+  <div class="page-header">
+    <button class="btn-back" (click)="goBack()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+      Back to Orders
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Loading order details...</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-container" *ngIf="error && !loading">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <h3>{{ error }}</h3>
+    <button class="btn-primary" (click)="goBack()">Go Back</button>
+  </div>
+
+  <!-- Order Details -->
+  <ng-container *ngIf="order && !loading && !error">
+    <!-- Order Header Card -->
+    <div class="order-header-card">
+      <div class="order-title-row">
+        <div>
+          <h1 class="order-number">{{ order.orderNumber }}</h1>
+          <p class="order-date">Placed on {{ formatDate(order.createdAt) }}</p>
+        </div>
+        <span class="status-badge" [ngClass]="getStatusClass(order.status)">
+          {{ getStatusLabel(order.status) }}
+        </span>
+      </div>
+
+      <div class="priority-row" *ngIf="order.priority">
+        <span class="priority-badge" [ngClass]="getPriorityClass(order.priority)">
+          {{ order.priority | titlecase }} Priority
+        </span>
+      </div>
+    </div>
+
+    <!-- Details Grid -->
+    <div class="details-grid">
+      <!-- Project Information -->
+      <div class="detail-card">
+        <div class="card-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          <h3>Project Information</h3>
+        </div>
+        <div class="card-body">
+          <div class="info-row">
+            <span class="label">Project Name</span>
+            <span class="value">{{ order.projectName || 'N/A' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Address</span>
+            <span class="value">{{ order.projectAddress }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Structure Type</span>
+            <span class="value">{{ order.structureType | titlecase }}</span>
+          </div>
+          <div class="info-row" *ngIf="order.primaryPitch">
+            <span class="label">Primary Pitch</span>
+            <span class="value">{{ order.primaryPitch }}</span>
+          </div>
+          <div class="info-row" *ngIf="order.secondaryPitch">
+            <span class="label">Secondary Pitch</span>
+            <span class="value">{{ order.secondaryPitch }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Report & Addons -->
+      <div class="detail-card">
+        <div class="card-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          <h3>Report & Addons</h3>
+        </div>
+        <div class="card-body">
+          <div class="info-row">
+            <span class="label">Report Type</span>
+            <span class="value">{{ order.reportType.name || 'N/A' }}</span>
+          </div>
+          <div class="addons-list" *ngIf="order.addons && order.addons.length > 0">
+            <span class="label">Addons</span>
+            <ul>
+              <li *ngFor="let addon of order.addons">
+                {{ addon.name }} - ${{ addon.price.toFixed(2) }}
+              </li>
+            </ul>
+          </div>
+          <div class="info-row" *ngIf="!order.addons || order.addons.length === 0">
+            <span class="label">Addons</span>
+            <span class="value">No addons selected</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pricing Summary -->
+      <div class="detail-card">
+        <div class="card-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+          <h3>Pricing Summary</h3>
+        </div>
+        <div class="card-body">
+          <div class="price-row">
+            <span>Base Price</span>
+            <span>${{ (order.basePrice || 0).toFixed(2) }}</span>
+          </div>
+          <div class="price-row" *ngIf="order.addonsTotal > 0">
+            <span>Addons Total</span>
+            <span>${{ (order.addonsTotal || 0).toFixed(2) }}</span>
+          </div>
+          <div class="price-row total">
+            <span>Total</span>
+            <span>${{ (order.totalPrice || 0).toFixed(2) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Customer Information -->
+      <div class="detail-card">
+        <div class="card-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <h3>Customer Information</h3>
+        </div>
+        <div class="card-body">
+          <div class="info-row">
+            <span class="label">Name</span>
+            <span class="value">{{ order.customerName }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Email</span>
+            <span class="value">{{ order.customerEmail }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Special Instructions -->
+    <div class="instructions-card" *ngIf="order.specialInstructions">
+      <div class="card-header">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+        <h3>Special Instructions</h3>
+      </div>
+      <div class="card-body">
+        <p>{{ order.specialInstructions }}</p>
+      </div>
+    </div>
+
+    <!-- Status Timeline -->
+    <div class="timeline-card">
+      <div class="card-header">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <h3>Status Timeline</h3>
+      </div>
+      <div class="card-body">
+        <div class="timeline">
+          <div class="timeline-item" *ngFor="let entry of order.statusTimeline; let last = last" [class.active]="last">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-status">
+                <span class="status-badge small" [ngClass]="getStatusClass(entry.status)">
+                  {{ getStatusLabel(entry.status) }}
+                </span>
+              </div>
+              <p class="timeline-date">{{ formatShortDate(entry.changedAt) }}</p>
+              <p class="timeline-notes" *ngIf="entry.notes">{{ entry.notes }}</p>
+              <p class="timeline-by">By: {{ entry.changedByEmail }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Designer Assignment -->
+    <div class="designer-card" *ngIf="order.assignedDesignerId">
+      <div class="card-header">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <h3>Assigned Designer</h3>
+      </div>
+      <div class="card-body">
+        <p>{{ order.assignedDesignerEmail }}</p>
+      </div>
+    </div>
+  </ng-container>
+</div>
