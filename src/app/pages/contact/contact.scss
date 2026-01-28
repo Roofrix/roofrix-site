@@ -288,6 +288,24 @@
   background: #142d47;
 }
 
+.info-card .email-link {
+  display: block;
+  text-align: center;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  margin-top: 16px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.info-card .email-link:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 /* Responsive - 900px */
 @media (max-width: 900px) {
   .contact-section {

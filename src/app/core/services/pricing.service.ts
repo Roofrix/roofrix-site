@@ -120,9 +120,9 @@ export class PricingService {
         { id: 'wall_esx_pdf_x2', name: 'Wall ESX+PDF (X2)', description: 'Double wall ESX with PDF', price: 42 }
       ],
       addons: [
-        { id: 'basic_rush_2h', name: '2-Hour Rush', price: 20, badge: 'URGENT' },
-        { id: 'basic_fence', name: 'Fence', price: 8 },
-        { id: 'basic_deck', name: 'Deck', price: 8 }
+        { id: 'basic_rush_2h', name: '2-Hour Rush', price: 5, badge: 'URGENT' },
+        { id: 'basic_fence', name: 'Fence', price: 3 },
+        { id: 'basic_deck', name: 'Deck', price: 3 }
       ]
     },
     moderate: {
@@ -137,9 +137,9 @@ export class PricingService {
         { id: 'wall_esx_pdf_x2', name: 'Wall ESX+PDF (X2)', description: 'Double wall ESX with PDF', price: 42 }
       ],
       addons: [
-        { id: 'moderate_rush_2h', name: '2-Hour Rush', price: 30, badge: 'URGENT' },
-        { id: 'moderate_fence', name: 'Fence', price: 12 },
-        { id: 'moderate_deck', name: 'Deck', price: 12 }
+        { id: 'moderate_rush_2h', name: '2-Hour Rush', price: 5, badge: 'URGENT' },
+        { id: 'moderate_fence', name: 'Fence', price: 3 },
+        { id: 'moderate_deck', name: 'Deck', price: 3 }
       ]
     },
     complex: {
@@ -154,9 +154,9 @@ export class PricingService {
         { id: 'wall_esx_pdf_x2', name: 'Wall ESX+PDF (X2)', description: 'Double wall ESX with PDF', price: 42 }
       ],
       addons: [
-        { id: 'complex_rush_2h', name: '2-Hour Rush', price: 50, badge: 'URGENT' },
-        { id: 'complex_fence', name: 'Fence', price: 20 },
-        { id: 'complex_deck', name: 'Deck', price: 20 }
+        { id: 'complex_rush_2h', name: '2-Hour Rush', price: 5, badge: 'URGENT' },
+        { id: 'complex_fence', name: 'Fence', price: 3 },
+        { id: 'complex_deck', name: 'Deck', price: 3 }
       ]
     }
   };
@@ -263,9 +263,9 @@ export class PricingService {
     // Default Addons
     const defaultAddons: Omit<Addon, 'id'>[] = [
       { name: 'PDF', price: 5, isActive: true, sortOrder: 1, createdAt: timestamp, updatedAt: timestamp },
-      { name: 'Fence', price: 5, isActive: true, sortOrder: 2, createdAt: timestamp, updatedAt: timestamp },
-      { name: 'Deck', price: 5, isActive: true, sortOrder: 3, createdAt: timestamp, updatedAt: timestamp },
-      { name: 'Make it 2hr Rush', price: 10, badge: 'FAST', isActive: true, sortOrder: 4, createdAt: timestamp, updatedAt: timestamp }
+      { name: 'Fence', price: 3, isActive: true, sortOrder: 2, createdAt: timestamp, updatedAt: timestamp },
+      { name: 'Deck', price: 3, isActive: true, sortOrder: 3, createdAt: timestamp, updatedAt: timestamp },
+      { name: 'Make it 2hr Rush', price: 5, badge: 'FAST', isActive: true, sortOrder: 4, createdAt: timestamp, updatedAt: timestamp }
     ];
 
     // Default Structure Types

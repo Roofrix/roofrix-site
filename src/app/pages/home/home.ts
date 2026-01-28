@@ -20,6 +20,8 @@ export class Home implements OnInit, OnDestroy {
   totalSlides = 4;
   private autoSlideInterval: any;
 
+  showOrderMenu = false;
+
   // Report images
   reportImages = [
     { src: 'assets/website/Home Page/01.png', alt: 'Report Preview 1' },
@@ -99,16 +101,19 @@ export class Home implements OnInit, OnDestroy {
     }
   }
 
-  orderNow(): void {
+  toggleOrderMenu(): void {
+    this.showOrderMenu = !this.showOrderMenu;
+  }
+
+  selectStructure(structureType: string): void {
+    this.showOrderMenu = false;
     this.authService.isAuthenticated$.pipe(take(1)).subscribe(isAuthenticated => {
       if (isAuthenticated) {
-        // User is logged in - go to new order with basic structure type
-        sessionStorage.setItem('selectedStructureType', 'basic');
+        sessionStorage.setItem('selectedStructureType', structureType);
         this.router.navigate(['/dashboard/customer/new-order'], {
-          queryParams: { type: 'basic', t: Date.now() }
+          queryParams: { type: structureType, t: Date.now() }
         });
       } else {
-        // User is not logged in - redirect to signin
         this.router.navigate(['/signin']);
       }
     });

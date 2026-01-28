@@ -9,7 +9,35 @@
       </p>
 
       <div class="actions">
-        <button class="primary" (click)="orderNow()">Order Now</button>
+        <div class="order-dropdown-wrapper">
+          <button class="primary" (click)="toggleOrderMenu()">
+            Order Now
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div class="order-dropdown" *ngIf="showOrderMenu">
+            <div class="dropdown-header">Select Structure Type</div>
+            <button (click)="selectStructure('basic')" class="dropdown-option">
+              <div class="option-info">
+                <span class="option-name">Basic Structure</span>
+                <span class="option-size">&lt;30 SQs</span>
+              </div>
+            </button>
+            <button (click)="selectStructure('moderate')" class="dropdown-option">
+              <div class="option-info">
+                <span class="option-name">Moderate Structure</span>
+                <span class="option-size">30 - 60 SQs</span>
+              </div>
+            </button>
+            <button (click)="selectStructure('complex')" class="dropdown-option">
+              <div class="option-info">
+                <span class="option-name">Complex/Commercial</span>
+                <span class="option-size">&gt;60 SQs</span>
+              </div>
+            </button>
+          </div>
+        </div>
         <button class="secondary" (click)="scrollToHowItWorks()">See How it Works</button>
       </div>
     </div>
@@ -17,15 +45,33 @@
 </section>
 
 <!-- Format Badges -->
-<div class="format-badges">
-  <div class="badge">
-    <div class="badge-icon">ESX</div>
+<div class="format-badges-wrapper">
+  <!-- Left decorative dots -->
+  <div class="decorative-dots left">
+    <span class="dot"></span>
+    <span class="dot"></span>
+    <span class="dot"></span>
+    <span class="dot"></span>
   </div>
-  <div class="badge">
-    <div class="badge-icon">PDF</div>
-  </div>
-  <div class="badge">
-    <div class="badge-icon">XML</div>
+
+  <div class="format-badges">
+    <div class="badge badge-dark">
+      <span class="badge-text">ESX</span>
+    </div>
+    <div class="badge badge-light">
+      <span class="badge-text">PDF</span>
+    </div>
+    <div class="badge badge-light">
+      <span class="badge-text">XML</span>
+    </div>
+    </div>
+    
+    <!-- Right decorative dots -->
+    <div class="decorative-dots right">
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
   </div>
 </div>
 
@@ -50,7 +96,7 @@
   <div class="divider"></div>
 
   <div class="feature">
-    <img src="assets/images/fast results.png" alt="Fast Results" />
+    <img src="assets/website/Home Page/fast results.png" alt="Fast Results" />
     <h4>Fast Results</h4>
     <p>Get detailed roof reports in minutes, not days. Ideal for adjusters and contractors.</p>
   </div>
@@ -163,3 +209,34 @@
     </div>
   </div>
 </section>
+
+<!-- Format Badges -->
+<div class="format-badges-wrapper" style="margin-bottom: 25px;">
+  <!-- Left decorative dots -->
+  <div class="decorative-dots left">
+    <span class="dot"></span>
+    <span class="dot"></span>
+    <span class="dot"></span>
+    <span class="dot"></span>
+  </div>
+
+  <div class="format-badges">
+    <div class="badge badge-dark">
+      <span class="badge-text">ESX</span>
+    </div>
+    <div class="badge badge-light">
+      <span class="badge-text">PDF</span>
+    </div>
+    <div class="badge badge-light">
+      <span class="badge-text">XML</span>
+    </div>
+  </div>
+
+  <!-- Right decorative dots -->
+  <div class="decorative-dots right">
+    <span class="dot"></span>
+    <span class="dot"></span>
+    <span class="dot"></span>
+    <span class="dot"></span>
+  </div>
+</div>
