@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { UserService, UserProfile } from '../../core/services/user.service';
+import { CartService } from '../../core/services/cart.service';
 import { Observable } from 'rxjs';
 import { User } from '../../core/models/user.interface';
 
@@ -17,10 +18,12 @@ export class Navbar {
   private authService = inject(AuthService);
   private userService = inject(UserService);
   private router = inject(Router);
+  private cartService = inject(CartService);
 
   currentUser$: Observable<User | null> = this.authService.currentUser$;
   isAuthenticated$: Observable<boolean> = this.authService.isAuthenticated$;
   userProfile$: Observable<UserProfile | null> | null = null;
+  cartCount$ = this.cartService.cartCount$;
   showUserMenu = false;
   showOrderMenu = false;
   mobileMenuOpen = false;
@@ -104,5 +107,13 @@ export class Navbar {
     this.showOrderMenu = false;
     this.mobileMenuOpen = false;
     this.authService.signOutUser().subscribe();
+  }
+
+  /**
+   * Navigate to cart page
+   */
+  navigateToCart(): void {
+    this.mobileMenuOpen = false;
+    this.router.navigate(['/dashboard/customer/cart']);
   }
 }

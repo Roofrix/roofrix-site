@@ -51,22 +51,7 @@ export const routes: Routes = [
     component: DashboardLayout,
     canActivate: [authGuard],
     children: [
-      // Customer routes - most specific first
-      {
-        path: 'customer/orders/products/:productId/review',
-        loadComponent: () => import('./pages/dashboard/customer/orders/products/review/review').then((m) => m.OrderReview),
-        canActivate: [customerGuard],
-      },
-      {
-        path: 'customer/orders/products/:productId',
-        loadComponent: () => import('./pages/dashboard/customer/orders/products/order/order').then((m) => m.ProductOrder),
-        canActivate: [customerGuard],
-      },
-      {
-        path: 'customer/orders/products',
-        loadComponent: () => import('./pages/dashboard/customer/orders/products/products').then((m) => m.Products),
-        canActivate: [customerGuard],
-      },
+      // Customer routes
       {
         path: 'customer/orders/:orderId',
         loadComponent: () => import('./pages/dashboard/customer/orders/order-detail/order-detail').then((m) => m.OrderDetail),
@@ -87,6 +72,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/dashboard/customer/order-review/order-review').then((m) => m.OrderReview),
         canActivate: [customerGuard],
       },
+      {
+        path: 'customer/cart',
+        loadComponent: () => import('./pages/dashboard/customer/cart/cart').then((m) => m.Cart),
+        canActivate: [customerGuard],
+      },
 
       // Admin routes
       {
@@ -98,7 +88,7 @@ export const routes: Routes = [
       // Default dashboard redirect based on role (handled by guards)
       {
         path: '',
-        redirectTo: 'customer/orders/products',
+        redirectTo: 'customer/orders',
         pathMatch: 'full',
       },
     ],

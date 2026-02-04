@@ -1,0 +1,69 @@
+import { Component, inject, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
+import { CartService, CartItem } from '../../../../core/services/cart.service';
+import { Observable } from 'rxjs';
+
+@Component({
+  selector: 'app-cart',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './cart.html',
+  styleUrl: './cart.scss',
+})
+export class Cart implements OnInit {
+  private router = inject(Router);
+  private cartService = inject(CartService);
+
+  cartItems$: Observable<CartItem[]> = this.cartService.cartItems$;
+
+  ngOnInit(): void {}
+
+  getCartTotal(): number {
+    return this.cartService.getCartTotal();
+  }
+
+  getCartCount(): number {
+    return this.cartService.getCartCount();
+  }
+
+  removeItem(itemId: string): void {
+    this.cartService.removeFromCart(itemId);
+  }
+
+  clearCart(): void {
+    this.cartService.clearCart();
+  }
+
+  proceedToCheckout(): void {
+    // Store cart items for order-review page
+    const cartItems = this.cartService.getCartItems();
+    if (cartItems.length === 0) {
+      return;
+    }
+
+    // Store cart data for review page
+    sessionStorage.setItem('cartCheckout', JSON.stringify({
+      items: cartItems,
+      totalPrice: this.getCartTotal()
+    }));
+
+    this.router.navigate(['/dashboard/customer/order-review'], {
+      queryParams: { fromCart: true }
+    });
+  }
+
+  continueShopping(): void {
+    this.router.navigate(['/dashboard/customer/new-order']);
+  }
+
+  formatDate(date: Date | string): string {
+    const d = new Date(date);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(d);
+  }
+}

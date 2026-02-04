@@ -1,10 +1,12 @@
 import { Component, inject, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { OrderService, OrderReportType, OrderAddon } from '../../../../core/services/order.service';
-import { Subscription } from 'rxjs';
+import { CartService } from '../../../../core/services/cart.service';
+import { Subscription, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import {
   PricingService,
   StructureCategory,
@@ -40,7 +42,7 @@ interface SelectedLocation {
 @Component({
   selector: 'app-new-order',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './new-order.html',
   styleUrl: './new-order.scss',
 })
@@ -51,12 +53,18 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private orderService = inject(OrderService);
+  private cartService = inject(CartService);
   private pricingService = inject(PricingService);
   private router = inject(Router);
   private ngZone = inject(NgZone);
 
   private routeSubscription?: Subscription;
+  private searchSubscription?: Subscription;
   private activatedRoute = inject(ActivatedRoute);
+
+  // Debounced address search
+  private searchSubject = new Subject<string>();
+  searchingAddress = false;
 
   orderForm!: FormGroup;
   loading = false;
@@ -120,11 +128,22 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
         this.loadStructureCategoryFromStorage();
       }
     });
+
+    // Set up debounced address search (300ms delay)
+    this.searchSubscription = this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(query => {
+      this.performAddressSearch(query);
+    });
   }
 
   ngOnDestroy(): void {
     if (this.routeSubscription) {
       this.routeSubscription.unsubscribe();
+    }
+    if (this.searchSubscription) {
+      this.searchSubscription.unsubscribe();
     }
   }
 
@@ -310,6 +329,20 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
     if (!query || query.length < 3) {
       this.searchResults = [];
       this.showSearchResults = false;
+      this.searchingAddress = false;
+      return;
+    }
+
+    // Show loading state and emit to debounced subject
+    this.searchingAddress = true;
+    this.searchSubject.next(query);
+  }
+
+  private performAddressSearch(query: string): void {
+    if (!query || query.length < 3) {
+      this.searchResults = [];
+      this.showSearchResults = false;
+      this.searchingAddress = false;
       return;
     }
 
@@ -322,12 +355,14 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
         this.ngZone.run(() => {
           this.searchResults = data || [];
           this.showSearchResults = this.searchResults.length > 0;
+          this.searchingAddress = false;
         });
       })
       .catch(() => {
         this.ngZone.run(() => {
           this.searchResults = [];
           this.showSearchResults = false;
+          this.searchingAddress = false;
         });
       });
   }
@@ -468,8 +503,91 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   }
 
   addToCart(): void {
-    // For now, same as submit - can be extended for cart functionality later
-    this.onSubmit();
+    if (this.orderForm.invalid) {
+      this.markFormGroupTouched(this.orderForm);
+      return;
+    }
+
+    if (!this.selectedLocation) {
+      this.errorMessage = 'Please select a location on the map';
+      return;
+    }
+
+    const selectedReportType = this.getSelectedReportType();
+    if (!selectedReportType) {
+      this.errorMessage = 'Please select a report type';
+      return;
+    }
+
+    // Build addons array
+    const addonsArray: { id: string; name: string; price: number }[] = [];
+    this.selectedAddons.forEach(addon => {
+      addonsArray.push({
+        id: addon.id,
+        name: addon.name,
+        price: addon.price
+      });
+    });
+
+    // Generate project name from address
+    const addressParts = this.selectedLocation.address.split(',');
+    const projectName = addressParts[0] || 'Rooftop Project';
+
+    // Add to cart
+    this.cartService.addToCart({
+      projectName: projectName,
+      projectAddress: this.selectedLocation.address,
+      location: { lat: this.selectedLocation.lat, lng: this.selectedLocation.lng, address: this.selectedLocation.address },
+      reportType: {
+        id: selectedReportType.id,
+        name: selectedReportType.name,
+        description: selectedReportType.description,
+        price: selectedReportType.price
+      },
+      selectedAddons: addonsArray,
+      structureCategory: this.selectedStructureCategory,
+      structureCategoryName: this.structureCategoryInfo?.name || this.selectedStructureCategory,
+      structureCategorySqRange: this.structureCategoryInfo?.sqRange || '',
+      specialInstructions: this.orderForm.get('specialInstructions')?.value || '',
+      basePrice: this.getBasePrice(),
+      addonsTotal: this.getAddonsTotal(),
+      totalPrice: this.getTotalPrice()
+    });
+
+    // Show success message
+    this.successMessage = 'Item added to cart successfully!';
+    this.errorMessage = '';
+
+    // Clear the success message after 3 seconds
+    setTimeout(() => {
+      this.successMessage = '';
+    }, 3000);
+
+    // Reset form for another item
+    this.resetFormForNewItem();
+  }
+
+  private resetFormForNewItem(): void {
+    // Reset location
+    this.selectedLocation = null;
+    this.locationConfirmed = false;
+
+    // Clear marker from map
+    if (this.map && this.marker && this.map.hasLayer(this.marker)) {
+      this.map.removeLayer(this.marker);
+    }
+
+    // Reset form fields
+    this.orderForm.patchValue({
+      address: '',
+      specialInstructions: ''
+    });
+
+    // Clear selected addons
+    this.selectedAddons.clear();
+
+    // Reset files
+    this.selectedFiles = [];
   }
 
   private markFormGroupTouched(formGroup: FormGroup): void {

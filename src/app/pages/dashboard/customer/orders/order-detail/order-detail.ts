@@ -1,30 +1,7 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-
-interface Order {
-  id: string;
-  orderNumber: string;
-  projectName: string;
-  projectAddress: string;
-  structureType: string;
-  primaryPitch?: string;
-  secondaryPitch?: string;
-  reportType: { id: string; name: string; price: number };
-  addons: { id: string; name: string; price: number }[];
-  basePrice: number;
-  addonsTotal: number;
-  totalPrice: number;
-  status: string;
-  priority: string;
-  customerName: string;
-  customerEmail: string;
-  specialInstructions?: string;
-  assignedDesignerId?: string;
-  assignedDesignerEmail?: string;
-  createdAt: Date;
-  statusTimeline: { status: string; changedAt: Date; changedByEmail: string; notes?: string }[];
-}
+import { OrderService, Order } from '../../../../../core/services/order.service';
 
 @Component({
   selector: 'app-order-detail',
@@ -36,6 +13,9 @@ interface Order {
 export class OrderDetail implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private orderService = inject(OrderService);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
 
   order: Order | null = null;
   loading = true;
@@ -51,41 +31,26 @@ export class OrderDetail implements OnInit {
     }
   }
 
-  loadOrder(orderId: string): void {
-    // Use demo data for fast loading
-    setTimeout(() => {
-      this.order = {
-        id: orderId,
-        orderNumber: 'ORD-2024-' + orderId.slice(-6).toUpperCase(),
-        projectName: 'Standard Report - 123 Main Street',
-        projectAddress: '123 Main Street, City, State 12345',
-        structureType: 'residential',
-        primaryPitch: '6/12',
-        reportType: { id: 'standard', name: 'Standard Report', price: 25.00 },
-        addons: [
-          { id: 'addon_1', name: 'Gutter Measurements', price: 10.00 },
-          { id: 'addon_3', name: 'Satellite Imagery', price: 20.00 }
-        ],
-        basePrice: 25.00,
-        addonsTotal: 30.00,
-        totalPrice: 55.00,
-        status: 'pending',
-        priority: 'medium',
-        customerName: 'John Doe',
-        customerEmail: 'john@example.com',
-        specialInstructions: 'Please include detailed measurements for the garage roof section.',
-        createdAt: new Date(),
-        statusTimeline: [
-          {
-            status: 'pending',
-            changedAt: new Date(),
-            changedByEmail: 'john@example.com',
-            notes: 'Order created'
-          }
-        ]
-      };
-      this.loading = false;
-    }, 300);
+  async loadOrder(orderId: string): Promise<void> {
+    try {
+      const order = await this.orderService.getOrder(orderId);
+      this.ngZone.run(() => {
+        if (order) {
+          this.order = order;
+        } else {
+          this.error = 'Order not found';
+        }
+        this.loading = false;
+        this.cdr.detectChanges();
+      });
+    } catch (err) {
+      console.error('Error loading order:', err);
+      this.ngZone.run(() => {
+        this.error = 'Failed to load order details';
+        this.loading = false;
+        this.cdr.detectChanges();
+      });
+    }
   }
 
   goBack(): void {
@@ -94,8 +59,18 @@ export class OrderDetail implements OnInit {
 
   getStatusClass(status: string): string {
     const statusClasses: { [key: string]: string } = {
-      'pending': 'status-pending',
+      'order_placed': 'status-order-placed',
+      'payment_pending': 'status-payment-pending',
+      'payment_accepted': 'status-payment-accepted',
+      'work_not_started': 'status-work-not-started',
       'in_progress': 'status-in-progress',
+      'on_hold': 'status-on-hold',
+      'work_completed': 'status-work-completed',
+      'sent_for_review': 'status-sent-for-review',
+      'customer_approved': 'status-customer-approved',
+      'project_closed': 'status-project-closed',
+      // Legacy statuses
+      'pending': 'status-pending',
       'review': 'status-review',
       'completed': 'status-completed',
       'cancelled': 'status-cancelled'
@@ -105,8 +80,18 @@ export class OrderDetail implements OnInit {
 
   getStatusLabel(status: string): string {
     const statusLabels: { [key: string]: string } = {
-      'pending': 'Pending',
+      'order_placed': 'Order Placed',
+      'payment_pending': 'Payment Pending',
+      'payment_accepted': 'Payment Accepted',
+      'work_not_started': 'Work Not Started',
       'in_progress': 'In Progress',
+      'on_hold': 'On Hold',
+      'work_completed': 'Work Completed',
+      'sent_for_review': 'Sent for Review',
+      'customer_approved': 'Customer Approved',
+      'project_closed': 'Project Closed',
+      // Legacy statuses
+      'pending': 'Pending',
       'review': 'Under Review',
       'completed': 'Completed',
       'cancelled': 'Cancelled'

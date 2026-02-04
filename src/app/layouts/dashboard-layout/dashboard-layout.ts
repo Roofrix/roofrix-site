@@ -4,6 +4,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { Observable } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { UserService, UserProfile } from '../../core/services/user.service';
+import { CartService } from '../../core/services/cart.service';
 
 @Component({
   selector: 'app-dashboard-layout',
@@ -16,9 +17,11 @@ export class DashboardLayout {
   private authService = inject(AuthService);
   private userService = inject(UserService);
   private router = inject(Router);
+  private cartService = inject(CartService);
 
   currentUser$ = this.authService.currentUser$;
   userProfile$: Observable<UserProfile | null> | null = null;
+  cartCount$ = this.cartService.cartCount$;
   showUserMenu = false;
   showOrderMenu = false;
   mobileMenuOpen = false;
@@ -86,5 +89,10 @@ export class DashboardLayout {
     this.router.navigate(['/dashboard/customer/new-order'], {
       queryParams: { type: structureType, t: Date.now() }
     });
+  }
+
+  navigateToCart(): void {
+    this.mobileMenuOpen = false;
+    this.router.navigate(['/dashboard/customer/cart']);
   }
 }

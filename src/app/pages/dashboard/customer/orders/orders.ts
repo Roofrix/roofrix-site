@@ -55,8 +55,18 @@ export class CustomerOrders implements OnInit, OnDestroy {
 
   getStatusClass(status: string): string {
     const statusClasses: { [key: string]: string } = {
-      'pending': 'status-pending',
+      'order_placed': 'status-order-placed',
+      'payment_pending': 'status-payment-pending',
+      'payment_accepted': 'status-payment-accepted',
+      'work_not_started': 'status-work-not-started',
       'in_progress': 'status-in-progress',
+      'on_hold': 'status-on-hold',
+      'work_completed': 'status-work-completed',
+      'sent_for_review': 'status-sent-for-review',
+      'customer_approved': 'status-customer-approved',
+      'project_closed': 'status-project-closed',
+      // Legacy statuses
+      'pending': 'status-pending',
       'review': 'status-review',
       'completed': 'status-completed',
       'cancelled': 'status-cancelled'
@@ -66,8 +76,18 @@ export class CustomerOrders implements OnInit, OnDestroy {
 
   getStatusLabel(status: string): string {
     const statusLabels: { [key: string]: string } = {
-      'pending': 'Pending',
+      'order_placed': 'Order Placed',
+      'payment_pending': 'Payment Pending',
+      'payment_accepted': 'Payment Accepted',
+      'work_not_started': 'Work Not Started',
       'in_progress': 'In Progress',
+      'on_hold': 'On Hold',
+      'work_completed': 'Work Completed',
+      'sent_for_review': 'Sent for Review',
+      'customer_approved': 'Customer Approved',
+      'project_closed': 'Project Closed',
+      // Legacy statuses
+      'pending': 'Pending',
       'review': 'Under Review',
       'completed': 'Completed',
       'cancelled': 'Cancelled'

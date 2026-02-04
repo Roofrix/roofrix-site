@@ -2,7 +2,22 @@ import { Injectable, inject } from '@angular/core';
 import { FirestoreService } from './firestore.service';
 import { Observable } from 'rxjs';
 
-export type OrderStatus = 'pending' | 'in_progress' | 'review' | 'completed' | 'cancelled';
+export type OrderStatus =
+  | 'order_placed'
+  | 'payment_pending'
+  | 'payment_accepted'
+  | 'work_not_started'
+  | 'in_progress'
+  | 'on_hold'
+  | 'work_completed'
+  | 'sent_for_review'
+  | 'customer_approved'
+  | 'project_closed'
+  // Legacy statuses for backward compatibility
+  | 'pending'
+  | 'review'
+  | 'completed'
+  | 'cancelled';
 
 /**
  * Snapshot of selected report type at time of order
@@ -34,6 +49,24 @@ export interface StatusTimelineEntry {
   changedByEmail: string;
   changedByRole: 'admin' | 'customer' | 'designer' | 'system';
   notes?: string;
+}
+
+/**
+ * Individual item in a multi-item order (cart checkout)
+ */
+export interface OrderItem {
+  projectName: string;
+  projectAddress: string;
+  location: { lat: number; lng: number; address?: string };
+  reportType: OrderReportType;
+  addons: OrderAddon[];
+  structureCategory: string;
+  structureCategoryName: string;
+  structureCategorySqRange: string;
+  specialInstructions: string;
+  basePrice: number;
+  addonsTotal: number;
+  totalPrice: number;
 }
 
 /**
@@ -97,9 +130,14 @@ export interface Order {
   createdAt: any;
   updatedAt: any;
   completedAt?: any;
+  workStartedAt?: any;  // When work actually started (for running timer)
+  rushDeadline?: any;   // Deadline for rush orders (2 hours from order)
 
   // Priority (auto-set to 'high' if Rush addon selected)
   priority: 'low' | 'medium' | 'high';
+
+  // Multi-item order support (from cart checkout)
+  items?: OrderItem[];
 
   // Legacy fields (for backward compatibility)
   projectName?: string;
@@ -151,6 +189,9 @@ export interface CreateOrderData {
 
   // Priority
   priority: 'low' | 'medium' | 'high';
+
+  // Multi-item order support (from cart checkout)
+  items?: OrderItem[];
 }
 
 export interface OrderMessage {
@@ -195,7 +236,7 @@ export class OrderService {
 
       // Create initial status timeline entry
       const initialStatusEntry: StatusTimelineEntry = {
-        status: 'pending',
+        status: 'order_placed',
         changedAt: timestamp,
         changedBy: createdBy,
         changedByEmail: data.customerEmail,
@@ -203,8 +244,20 @@ export class OrderService {
         notes: 'Order created'
       };
 
+      // Check if this is a rush order (has 2hr rush addon)
+      const isRushOrder = data.addons.some(addon =>
+        addon.name.toLowerCase().includes('rush') || addon.id.includes('rush')
+      );
+
+      // Calculate rush deadline (2 hours from now) if rush order
+      const rushDeadline = isRushOrder
+        ? new Date(Date.now() + 2 * 60 * 60 * 1000)
+        : null;
+
       // Generate project name from report type and address
-      const projectName = `${data.reportType.name} - ${data.projectAddress}`;
+      const projectName = data.items && data.items.length > 1
+        ? `${data.items.length} Projects - ${data.items[0].projectName}`
+        : `${data.reportType.name} - ${data.projectAddress}`;
 
       const order: Omit<Order, 'id'> = {
         orderNumber,
@@ -227,13 +280,16 @@ export class OrderService {
         basePrice: data.basePrice,
         addonsTotal: data.addonsTotal,
         totalPrice: data.totalPrice,
-        status: 'pending',
+        status: 'order_placed',
         statusTimeline: [initialStatusEntry],
         siteImages: [],
         designFiles: [],
         createdAt: timestamp,
         updatedAt: timestamp,
+        rushDeadline: rushDeadline,
         priority: data.priority,
+        // Multi-item order support
+        items: data.items || undefined,
         // Legacy fields
         projectName: projectName,
         projectDescription: data.specialInstructions || ''
@@ -304,7 +360,12 @@ export class OrderService {
         updatedAt: timestamp
       };
 
-      if (newStatus === 'completed') {
+      // Set workStartedAt when work begins
+      if (newStatus === 'in_progress' && !order.workStartedAt) {
+        updateData.workStartedAt = timestamp;
+      }
+
+      if (newStatus === 'project_closed' || newStatus === 'completed') {
         updateData.completedAt = timestamp;
       }
 
@@ -580,6 +641,21 @@ export class OrderService {
       );
     } catch (error) {
       console.error('Error adding design files:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete an order
+   */
+  async deleteOrder(orderId: string): Promise<void> {
+    try {
+      await this.firestoreService.deleteDocument(
+        this.ORDERS_COLLECTION,
+        orderId
+      );
+    } catch (error) {
+      console.error('Error deleting order:', error);
       throw error;
     }
   }

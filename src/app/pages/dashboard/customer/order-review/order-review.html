@@ -1,6 +1,6 @@
 <div class="review-page">
-  <!-- Review State -->
-  <ng-container *ngIf="!orderConfirmed && orderData">
+  <!-- Single Item Review State -->
+  <ng-container *ngIf="!orderConfirmed && orderData && !isCartCheckout">
     <div class="page-header">
       <button class="btn-back" (click)="goBack()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -100,6 +100,85 @@
     </div>
   </ng-container>
 
+  <!-- Cart Checkout Review State -->
+  <ng-container *ngIf="!orderConfirmed && isCartCheckout && cartItems.length > 0">
+    <div class="page-header">
+      <button class="btn-back" (click)="goBack()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        Back to Cart
+      </button>
+      <h1>Order Review</h1>
+      <p>Review your {{ cartItems.length }} item{{ cartItems.length > 1 ? 's' : '' }} before placing order</p>
+    </div>
+
+    <!-- Error Message -->
+    <div class="alert alert-error" *ngIf="errorMessage">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>{{ errorMessage }}</span>
+    </div>
+
+    <div class="review-card cart-review">
+      <div class="card-header">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"></path>
+        </svg>
+        <h2>Order Summary ({{ cartItems.length }} Items)</h2>
+      </div>
+
+      <!-- Cart Items List -->
+      <div class="cart-items-review">
+        <div class="cart-item-card" *ngFor="let item of cartItems; let i = index">
+          <div class="item-number">{{ i + 1 }}</div>
+          <div class="item-content">
+            <h4>{{ item.projectName }}</h4>
+            <p class="item-address">{{ item.projectAddress }}</p>
+            <div class="item-details-row">
+              <span class="detail-tag">{{ item.structureCategoryName }}</span>
+              <span class="detail-tag">{{ item.reportType.name }}</span>
+              <span class="detail-tag addons" *ngIf="item.selectedAddons && item.selectedAddons.length > 0">
+                +{{ item.selectedAddons.length }} addon{{ item.selectedAddons.length > 1 ? 's' : '' }}
+              </span>
+            </div>
+          </div>
+          <div class="item-price">${{ item.totalPrice.toFixed(2) }}</div>
+        </div>
+      </div>
+
+      <div class="summary-section cart-summary">
+        <div class="summary-line">
+          <span>Items ({{ cartItems.length }})</span>
+          <span>${{ cartTotal.toFixed(2) }}</span>
+        </div>
+        <div class="summary-line total">
+          <span>Order Total</span>
+          <span>${{ cartTotal.toFixed(2) }}</span>
+        </div>
+      </div>
+
+      <div class="payment-note">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>Payment integration coming soon. Your order will be processed for review.</span>
+      </div>
+
+      <button class="btn-confirm" (click)="confirmOrder()" [disabled]="loading">
+        <span *ngIf="!loading">Place Order</span>
+        <span *ngIf="loading">Processing...</span>
+      </button>
+    </div>
+  </ng-container>
+
   <!-- Confirmed State -->
   <ng-container *ngIf="orderConfirmed">
     <div class="confirmation-card">
@@ -114,8 +193,8 @@
       <p class="thank-you">Thank you for your order. We will process it shortly.</p>
 
       <div class="confirmation-actions">
-        <button class="btn-primary" (click)="goToOrders()">View Order History</button>
-        <button class="btn-secondary" (click)="goToProducts()">Continue Shopping</button>
+        <button class="btn-primary" (click)="goToOrderDetails()">View Order Details</button>
+        <button class="btn-secondary" (click)="goToOrders()">View All Orders</button>
       </div>
     </div>
   </ng-container>
