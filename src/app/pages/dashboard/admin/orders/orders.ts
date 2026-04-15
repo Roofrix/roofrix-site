@@ -377,57 +377,55 @@ export class AdminOrders implements OnInit, OnDestroy {
     return statusLabels[status] || status;
   }
 
-  // Timer methods
+  // Priority methods
   isRushOrder(order: Order): boolean {
     return order.addons?.some(addon =>
       addon.name.toLowerCase().includes('rush') || addon.id?.includes('rush')
     ) || false;
   }
 
-  isActiveWork(order: Order): boolean {
-    return order.status === 'in_progress' && !!order.workStartedAt;
+  getPriorityLabel(order: Order): string {
+    return this.isRushOrder(order) ? '2hr Rush' : 'Standard';
   }
 
-  getCountdownTime(order: Order): string {
-    if (!order.rushDeadline) return '--';
+  // Timer methods - countdown from order creation
+  getRemainingTime(order: Order): { hours: number; minutes: number; totalMs: number } {
+    if (!order.createdAt) return { hours: 0, minutes: 0, totalMs: 0 };
 
-    const deadline = order.rushDeadline.toDate ? order.rushDeadline.toDate() : new Date(order.rushDeadline);
+    const createdDate = order.createdAt.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
     const now = new Date();
-    const diff = deadline.getTime() - now.getTime();
+    const elapsed = now.getTime() - createdDate.getTime();
 
-    if (diff <= 0) return 'Overdue';
+    const totalAllowedMs = this.isRushOrder(order) ? 2 * 60 * 60 * 1000 : 8 * 60 * 60 * 1000;
+    const remaining = totalAllowedMs - elapsed;
 
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const absRemaining = Math.abs(remaining);
+    const hours = Math.floor(absRemaining / (1000 * 60 * 60));
+    const minutes = Math.floor((absRemaining % (1000 * 60 * 60)) / (1000 * 60));
 
-    return `${hours}h ${minutes}m`;
+    return { hours, minutes, totalMs: remaining };
   }
 
-  getRunningTime(order: Order): string {
-    if (!order.workStartedAt) return '--';
+  getCountdownDisplay(order: Order): string {
+    if (!order.createdAt) return '--';
 
-    const startTime = order.workStartedAt.toDate ? order.workStartedAt.toDate() : new Date(order.workStartedAt);
-    const now = new Date();
-    const diff = now.getTime() - startTime.getTime();
+    const { hours, minutes, totalMs } = this.getRemainingTime(order);
 
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
+    if (totalMs <= 0) {
+      return `-${hours}h ${minutes}m`;
+    }
     return `${hours}h ${minutes}m`;
   }
 
   getTimeClass(order: Order): string {
-    if (this.isRushOrder(order)) {
-      const deadline = order.rushDeadline?.toDate ? order.rushDeadline.toDate() : new Date(order.rushDeadline);
-      const now = new Date();
-      const diff = deadline?.getTime() - now.getTime();
+    if (!order.createdAt) return '';
 
-      if (diff <= 0) return 'time-overdue';
-      if (diff < 30 * 60 * 1000) return 'time-urgent'; // Less than 30 minutes
-      if (diff < 60 * 60 * 1000) return 'time-warning'; // Less than 1 hour
-      return 'time-normal';
-    }
-    return 'time-active';
+    const { totalMs } = this.getRemainingTime(order);
+
+    if (totalMs <= 0) return 'time-overdue';
+    if (totalMs < 30 * 60 * 1000) return 'time-urgent';
+    if (totalMs < 60 * 60 * 1000) return 'time-warning';
+    return 'time-normal';
   }
 
   formatDate(timestamp: any): string {
@@ -445,9 +443,7 @@ export class AdminOrders implements OnInit, OnDestroy {
     }
   }
 
-  getPriorityClass(priority?: string): string {
-    if (priority === 'high') return 'priority-high';
-    if (priority === 'medium') return 'priority-medium';
-    return 'priority-low';
+  getPriorityClass(order: Order): string {
+    return this.isRushOrder(order) ? 'priority-rush' : 'priority-standard';
   }
 }

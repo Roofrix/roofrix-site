@@ -84,11 +84,12 @@
     .icon-wrapper {
       display: flex;
       justify-content: center;
-      margin-bottom: 24px;
+      margin-bottom: 0;
 
-      .icon {
-        width: 80px;
-        height: 80px;
+      img {
+        width: 160px;
+        height: 160px;
+        object-fit: contain;
       }
     }
 

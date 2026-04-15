@@ -31,6 +31,33 @@
   margin-bottom: 32px;
 }
 
+.hero .hero-content .hero-left .hero-subtitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.hero .hero-content .hero-left .hero-audience {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 32px;
+  margin-bottom: 24px;
+
+  span {
+    font-size: 16px;
+    font-weight: 500;
+    color: #334155;
+  }
+}
+
+.hero .hero-content .hero-left .hero-trust {
+  font-size: 15px;
+  font-weight: 600;
+  color: #3b82f6;
+  margin-bottom: 32px;
+  letter-spacing: 0.02em;
+}
 .hero .hero-content .hero-left .actions {
   display: flex;
   gap: 16px;
@@ -305,21 +332,22 @@
 
 .features .divider {
   width: 2px;
-    align-self: stretch;
-    background: linear-gradient(180deg, transparent 0%, #cbd5e1 15%, #cbd5e1 85%, transparent 100%);
-    border-radius: 1px;
+  align-self: stretch;
+  background: linear-gradient(180deg, transparent 0%, #cbd5e1 15%, #cbd5e1 85%, transparent 100%);
+  border-radius: 1px;
 }
 
 .features .feature {
   text-align: center;
   padding: 24px;
+  min-width: 0;
 }
 
 .features .feature img {
-  width: 80px;
-  height: 80px;
-  margin-bottom: 20px;
-  object-fit: contain;
+  width: 130px;
+    height: 130px;
+  margin-bottom: 0;
+  object-fit: cover;
 }
 
 .features .feature h4 {
@@ -393,10 +421,7 @@
   width: 120px;
   height: 120px;
   border-radius: 24px;
-  background: linear-gradient(145deg, #f0f7ff, #e0efff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
   margin-bottom: 18px;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
 }
@@ -405,7 +430,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 16px;
+  display: block;
 }
 
 .report .left .service-card h4 {
@@ -487,7 +512,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   border-radius: 20px;
   opacity: 0;
   transform: translateX(100%);
@@ -649,6 +674,18 @@
 
 /* RESPONSIVE - 1024px */
 @media (max-width: 1024px) {
+  .features {
+    grid-template-columns: 1fr;
+    padding: 0 40px;
+    gap: 0;
+  }
+  .features .divider {
+    display: none;
+  }
+  .features .feature {
+    max-width: 500px;
+    margin: 0 auto;
+  }
   .hero {
     padding: 60px 40px 40px;
   }
@@ -694,6 +731,10 @@
   }
   .hero .hero-content .hero-left p {
     font-size: 16px;
+  }
+  .hero .hero-content .hero-left .hero-audience {
+    grid-template-columns: 1fr;
+    gap: 6px;
   }
   .hero .hero-content .hero-left .actions {
     flex-direction: column;
@@ -765,8 +806,8 @@
     padding: 20px;
   }
   .features .feature img {
-    width: 70px;
-    height: 70px;
+    width: 100px;
+      height: 100px;
   }
   .features .feature h4 {
     font-size: 16px;
@@ -781,7 +822,9 @@
   }
   .report .left,
   .report .right {
-    max-width: 100%;
+    max-width: 100% !important;
+    width: 100%;
+    flex: none;
   }
   .report .left h2 {
     font-size: 26px;
@@ -799,8 +842,9 @@
   .report .left .service-card .service-icon {
     width: 90px;
     height: 90px;
-    padding: 16px;
+    padding: 0;
     margin-bottom: 14px;
+    border-radius: 20px;
   }
   .report .left .service-card h4 {
     font-size: 14px;
@@ -823,7 +867,8 @@
     height: 20px;
   }
   .report .right .report-preview {
-    min-height: 300px;
+    min-height: 0;
+      aspect-ratio: 4/3;
   }
   .report .right .report-preview .report-image {
     border-radius: 12px;
@@ -906,8 +951,8 @@
     padding: 16px;
   }
   .features .feature img {
-    width: 60px;
-    height: 60px;
+    width: 80px;
+      height: 80px;
   }
   .features .feature h4 {
     font-size: 15px;
@@ -934,14 +979,16 @@
   .report .left .service-card .service-icon {
     width: 70px;
     height: 70px;
-    padding: 12px;
+    padding: 0;
     margin-bottom: 10px;
+    border-radius: 16px;
   }
   .report .left .service-card h4 {
     font-size: 12px;
   }
   .report .right .report-preview {
-    min-height: 250px;
+    min-height: 0;
+      aspect-ratio: 4/3;
   }
   .report .right .slider-arrow {
     width: 32px;

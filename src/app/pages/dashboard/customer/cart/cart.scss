@@ -200,15 +200,30 @@
   gap: 0.5rem;
   font-size: 0.875rem;
 
+  @media (max-width: 480px) {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
   .detail-label {
     color: #64748b;
-    min-width: 130px;
+    min-width: 110px;
     flex-shrink: 0;
+
+    @media (max-width: 640px) {
+      min-width: 90px;
+    }
+
+    @media (max-width: 480px) {
+      min-width: auto;
+      font-weight: 500;
+    }
   }
 
   .detail-value {
     color: #1e293b;
     font-weight: 500;
+    word-break: break-word;
 
     &.instructions {
       font-weight: 400;
@@ -224,12 +239,22 @@
     font-size: 0.75rem;
     font-weight: 500;
     margin-left: auto;
+    flex-shrink: 0;
+
+    @media (max-width: 480px) {
+      margin-left: 0;
+    }
   }
 
   .detail-price {
     margin-left: auto;
     font-weight: 600;
     color: #1e293b;
+    flex-shrink: 0;
+
+    @media (max-width: 480px) {
+      margin-left: 0;
+    }
   }
 
   &.addons {
@@ -237,9 +262,13 @@
 
     .addons-list {
       width: 100%;
-      padding-left: 130px;
+      padding-left: 110px;
 
       @media (max-width: 640px) {
+        padding-left: 90px;
+      }
+
+      @media (max-width: 480px) {
         padding-left: 0;
       }
     }

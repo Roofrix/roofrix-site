@@ -5,9 +5,9 @@ import emailjs from '@emailjs/browser';
 
 // EmailJS Configuration - Replace with your actual values from EmailJS dashboard
 const EMAILJS_CONFIG = {
-  serviceId: 'YOUR_SERVICE_ID',      // e.g., 'service_abc123'
-  templateId: 'YOUR_TEMPLATE_ID',    // e.g., 'template_xyz789'
-  publicKey: 'YOUR_PUBLIC_KEY'       // e.g., 'AbCdEfGhIjKlMnOp'
+  serviceId: 'service_ukmbo8w',
+  templateId: 'template_j701fze',
+  publicKey: '3mVFH6dqA-9pzxCzl'
 };
 
 @Component({
@@ -42,6 +42,7 @@ export class Contact {
     this.errorMessage = '';
 
     const templateParams = {
+      title: 'New Contact Message from Roofrix',
       from_name: this.contactForm.value.name,
       from_email: this.contactForm.value.email,
       message: this.contactForm.value.message,
@@ -58,6 +59,7 @@ export class Contact {
       this.loading = false;
       this.submitted = true;
       this.contactForm.reset();
+      setTimeout(() => this.submitted = false, 5000);
     })
     .catch((error) => {
       console.error('EmailJS Error:', error);

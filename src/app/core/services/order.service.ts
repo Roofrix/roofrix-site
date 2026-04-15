@@ -471,18 +471,66 @@ export class OrderService {
   }
 
   /**
-   * Get all orders (Admin only)
+   * Get all orders (Admin only) - with pagination for scalability
    */
-  async getAllOrders(): Promise<Order[]> {
+  async getAllOrders(pageSize: number = 100): Promise<Order[]> {
     try {
-      const { orderBy } = this.firestoreService.getQueryHelpers();
+      const { orderBy, limit } = this.firestoreService.getQueryHelpers();
       return await this.firestoreService.getDocuments<Order>(
         this.ORDERS_COLLECTION,
-        [orderBy('createdAt', 'desc')]
+        [orderBy('createdAt', 'desc'), limit(pageSize)]
       );
     } catch (error) {
       console.error('Error getting all orders:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get paginated orders (Admin only) - for infinite scroll or pagination
+   */
+  async getOrdersPaginated(
+    pageSize: number = 50,
+    lastOrderDate?: any
+  ): Promise<{ orders: Order[]; hasMore: boolean }> {
+    try {
+      const { orderBy, limit, startAfter } = this.firestoreService.getQueryHelpers();
+      const constraints: any[] = [orderBy('createdAt', 'desc'), limit(pageSize + 1)];
+
+      if (lastOrderDate) {
+        constraints.push(startAfter(lastOrderDate));
+      }
+
+      const orders = await this.firestoreService.getDocuments<Order>(
+        this.ORDERS_COLLECTION,
+        constraints
+      );
+
+      const hasMore = orders.length > pageSize;
+      return {
+        orders: hasMore ? orders.slice(0, pageSize) : orders,
+        hasMore
+      };
+    } catch (error) {
+      console.error('Error getting paginated orders:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get order count by status (for dashboard stats)
+   */
+  async getOrderCountByStatus(status: OrderStatus): Promise<number> {
+    try {
+      const { where } = this.firestoreService.getQueryHelpers();
+      const orders = await this.firestoreService.getDocuments<Order>(
+        this.ORDERS_COLLECTION,
+        [where('status', '==', status)]
+      );
+      return orders.length;
+    } catch (error) {
+      console.error('Error getting order count:', error);
+      return 0;
     }
   }
 
@@ -600,21 +648,15 @@ export class OrderService {
   }
 
   /**
-   * Add site images to order
+   * Add site images to order - optimized with arrayUnion (no full document read required)
    */
   async addSiteImages(orderId: string, imageUrls: string[]): Promise<void> {
     try {
-      const order = await this.getOrder(orderId);
-      if (!order) {
-        throw new Error('Order not found');
-      }
-
-      const updatedImages = [...order.siteImages, ...imageUrls];
-
-      await this.firestoreService.updateDocument(
+      await this.firestoreService.appendToArrayField(
         this.ORDERS_COLLECTION,
         orderId,
-        { siteImages: updatedImages }
+        'siteImages',
+        imageUrls
       );
     } catch (error) {
       console.error('Error adding site images:', error);
@@ -623,24 +665,52 @@ export class OrderService {
   }
 
   /**
-   * Add design files to order
+   * Add design files to order - optimized with arrayUnion (no full document read required)
    */
   async addDesignFiles(orderId: string, fileUrls: string[]): Promise<void> {
     try {
-      const order = await this.getOrder(orderId);
-      if (!order) {
-        throw new Error('Order not found');
-      }
-
-      const updatedFiles = [...order.designFiles, ...fileUrls];
-
-      await this.firestoreService.updateDocument(
+      await this.firestoreService.appendToArrayField(
         this.ORDERS_COLLECTION,
         orderId,
-        { designFiles: updatedFiles }
+        'designFiles',
+        fileUrls
       );
     } catch (error) {
       console.error('Error adding design files:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove site image from order
+   */
+  async removeSiteImage(orderId: string, imageUrl: string): Promise<void> {
+    try {
+      await this.firestoreService.removeFromArrayField(
+        this.ORDERS_COLLECTION,
+        orderId,
+        'siteImages',
+        [imageUrl]
+      );
+    } catch (error) {
+      console.error('Error removing site image:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove design file from order
+   */
+  async removeDesignFile(orderId: string, fileUrl: string): Promise<void> {
+    try {
+      await this.firestoreService.removeFromArrayField(
+        this.ORDERS_COLLECTION,
+        orderId,
+        'designFiles',
+        [fileUrl]
+      );
+    } catch (error) {
+      console.error('Error removing design file:', error);
       throw error;
     }
   }

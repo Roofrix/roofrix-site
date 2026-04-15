@@ -19,7 +19,9 @@ import {
   onSnapshot,
   DocumentData,
   QuerySnapshot,
-  DocumentSnapshot
+  DocumentSnapshot,
+  arrayUnion,
+  arrayRemove
 } from 'firebase/firestore';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -222,6 +224,59 @@ export class FirestoreService {
       limit,
       startAfter
     };
+  }
+
+  /**
+   * Get array field modifiers for efficient array updates
+   * Use arrayUnion to add items without reading the entire document first
+   */
+  getArrayHelpers() {
+    return {
+      arrayUnion,
+      arrayRemove
+    };
+  }
+
+  /**
+   * Append items to an array field efficiently (without reading full document)
+   */
+  async appendToArrayField(
+    collectionPath: string,
+    documentId: string,
+    fieldName: string,
+    items: any[]
+  ): Promise<void> {
+    try {
+      const docRef = doc(this.db, collectionPath, documentId);
+      await updateDoc(docRef, {
+        [fieldName]: arrayUnion(...items),
+        updatedAt: Timestamp.now()
+      });
+    } catch (error) {
+      console.error('Error appending to array field:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove items from an array field efficiently
+   */
+  async removeFromArrayField(
+    collectionPath: string,
+    documentId: string,
+    fieldName: string,
+    items: any[]
+  ): Promise<void> {
+    try {
+      const docRef = doc(this.db, collectionPath, documentId);
+      await updateDoc(docRef, {
+        [fieldName]: arrayRemove(...items),
+        updatedAt: Timestamp.now()
+      });
+    } catch (error) {
+      console.error('Error removing from array field:', error);
+      throw error;
+    }
   }
 
   /**

@@ -1,6 +1,11 @@
 .orders-page {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 1rem;
+
+  @media (max-width: 480px) {
+    padding: 0 0.75rem;
+  }
 }
 
 .page-header {
@@ -19,11 +24,19 @@
     font-weight: 700;
     color: #1e293b;
     margin: 0 0 0.5rem 0;
+
+    @media (max-width: 480px) {
+      font-size: 1.5rem;
+    }
   }
 
   .page-subtitle {
     color: #64748b;
     margin: 0;
+
+    @media (max-width: 480px) {
+      font-size: 0.875rem;
+    }
   }
 
   .btn-primary {
@@ -147,6 +160,11 @@
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (max-width: 480px) {
+    gap: 0.75rem;
   }
 }
 
