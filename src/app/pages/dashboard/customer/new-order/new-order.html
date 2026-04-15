@@ -44,19 +44,10 @@
     </div>
   </div>
 
-  <!-- Error Message -->
-  <div class="alert alert-error" *ngIf="errorMessage">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="10"></circle>
-      <line x1="12" y1="8" x2="12" y2="12"></line>
-      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-    </svg>
-    <span>{{ errorMessage }}</span>
-  </div>
 
   <!-- Order Form -->
   <div class="form-container" *ngIf="!loadingPricing">
-    <form [formGroup]="orderForm" (ngSubmit)="onSubmit()">
+    <form [formGroup]="orderForm" (ngSubmit)="onSubmit()" (keydown.enter)="$event.preventDefault()">
 
       <!-- Section 1: Enter Address and Confirm Pin -->
       <div class="accordion-section address-section">
@@ -81,6 +72,8 @@
                 placeholder="Search for a location"
                 [class.error]="hasError('address', 'required')"
                 (input)="searchAddress()"
+                (paste)="onAddressPaste($event)"
+                (keydown.enter)="$event.preventDefault()"
                 (blur)="hideSearchResults()"
                 autocomplete="off"
               />
@@ -135,11 +128,12 @@
             </svg>
             <span>{{ locationConfirmed ? 'Location Confirmed' : 'Confirm Location' }}</span>
           </button>
+          <span class="error-text" *ngIf="locationError">{{ locationError }}</span>
         </div>
       </div>
 
       <!-- Section 2: Choose Report Type -->
-      <div class="accordion-section">
+      <div class="accordion-section reportType-section" data-section="reportType">
         <div class="accordion-header" (click)="toggleSection('reportType')">
           <div class="section-title">
             <span class="section-number">2</span>
@@ -171,6 +165,7 @@
           <div class="no-data" *ngIf="reportTypes.length === 0">
             No report types available. Please contact support.
           </div>
+          <span class="error-text" *ngIf="reportTypeError">{{ reportTypeError }}</span>
         </div>
       </div>
 
@@ -212,7 +207,7 @@
       </div>
 
       <!-- Section 4: Structure Type -->
-      <div class="accordion-section">
+      <div class="accordion-section structureType-section" data-section="structureType">
         <div class="accordion-header" (click)="toggleSection('structureType')">
           <div class="section-title">
             <span class="section-number">4</span>
@@ -235,6 +230,7 @@
               <span class="option-label">Main and Garage</span>
             </label>
           </div>
+          <span class="error-text" *ngIf="structureTypeError">{{ structureTypeError }}</span>
         </div>
       </div>
 
@@ -294,7 +290,7 @@
       </div>
 
       <!-- Section 7: Upload Photos (Optional) -->
-      <div class="accordion-section">
+      <div class="accordion-section photos-section" data-section="photos">
         <div class="accordion-header" (click)="toggleSection('photos')">
           <div class="section-title">
             <span class="section-number">7</span>
@@ -321,8 +317,9 @@
                 (change)="onFileSelect($event)"
               />
             </label>
-            <span class="file-types-badge">JPG, PNG, PDF</span>
+            <span class="file-types-badge">JPG, PNG, PDF (max 10MB each)</span>
           </div>
+          <span class="error-text" *ngIf="fileError">{{ fileError }}</span>
           <div class="selected-files" *ngIf="selectedFiles.length > 0">
             <div class="file-item" *ngFor="let file of selectedFiles; let i = index">
               <div class="file-info">

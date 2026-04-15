@@ -91,14 +91,7 @@ export class SignIn implements OnInit {
           if (this.returnUrl) {
             this.router.navigate([this.returnUrl]);
           } else {
-            // Role-based default redirect
-            if (profile.role === 'admin') {
-              this.router.navigate(['/dashboard/admin/orders']);
-            } else if (profile.role === 'designer') {
-              this.router.navigate(['/dashboard/designer/orders']);
-            } else {
-              this.router.navigate(['/dashboard/customer/new-order']);
-            }
+            this.router.navigate(['/']);
           }
         });
       },

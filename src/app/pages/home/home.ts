@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -98,6 +98,14 @@ export class Home implements OnInit, OnDestroy {
     const element = document.getElementById('how-it-works');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.order-dropdown-wrapper')) {
+      this.showOrderMenu = false;
     }
   }
 

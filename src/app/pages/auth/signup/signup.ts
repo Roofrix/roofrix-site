@@ -90,8 +90,8 @@ export class SignUp implements OnInit {
     this.authService.signUp(email, password).subscribe({
       next: (result) => {
         if (result.success) {
-          // Navigate to customer dashboard after successful signup
-          this.router.navigate(['/dashboard/customer/new-order']);
+          // Navigate to home page after successful signup
+          this.router.navigate(['/']);
         } else {
           this.ngZone.run(() => {
             this.errorMessage = result.error || 'Sign up failed. Please try again.';

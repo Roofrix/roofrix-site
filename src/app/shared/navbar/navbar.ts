@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ViewEncapsulation, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -13,6 +13,7 @@ import { User } from '../../core/models/user.interface';
   imports: [CommonModule, RouterLink, RouterLinkActive],
   templateUrl: './navbar.html',
   styleUrls: ['./navbar.scss'],
+  encapsulation: ViewEncapsulation.None,
 })
 export class Navbar {
   private authService = inject(AuthService);
@@ -49,6 +50,15 @@ export class Navbar {
    */
   navigateToSignin(): void {
     this.router.navigate(['/signin']);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.order-menu') && !target.closest('.user-menu')) {
+      this.showOrderMenu = false;
+      this.showUserMenu = false;
+    }
   }
 
   /**

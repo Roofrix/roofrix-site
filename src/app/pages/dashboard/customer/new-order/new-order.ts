@@ -104,6 +104,15 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
 
   // File upload
   selectedFiles: File[] = [];
+  fileError = '';
+
+  // Inline validation errors (non-form-control fields)
+  locationError = '';
+  reportTypeError = '';
+  structureTypeError = '';
+
+  // Flag to skip search after paste (geocode handles it)
+  private isPasting = false;
 
   // Selected product from products page
   selectedProduct: any = null;
@@ -113,7 +122,7 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
     this.orderForm = this.fb.group({
       address: ['', [Validators.required]],
       reportType: ['', [Validators.required]],
-      structureType: ['main'],
+      structureType: ['', [Validators.required]],
       primaryPitch: [''],
       secondaryPitch: [''],
       specialInstructions: ['']
@@ -127,6 +136,14 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
       if (params['type']) {
         this.loadStructureCategoryFromStorage();
       }
+    });
+
+    // Clear inline errors in real time when user selects values
+    this.orderForm.get('reportType')?.valueChanges.subscribe(() => {
+      this.reportTypeError = '';
+    });
+    this.orderForm.get('structureType')?.valueChanges.subscribe(() => {
+      this.structureTypeError = '';
     });
 
     // Set up debounced address search (300ms delay)
@@ -226,25 +243,22 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
         zoomControl: true
       });
 
-      // Add OpenStreetMap tiles (free)
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-      }).addTo(this.map);
-
-      // Add satellite layer option using ESRI (free)
+      // Add satellite layer as default (ESRI - free)
       const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: '© Esri',
         maxZoom: 19
+      }).addTo(this.map);
+
+      // Add street map as alternate option
+      const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
       });
 
-      // Add layer control
+      // Add layer control so user can switch
       const baseLayers = {
-        'Street Map': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors',
-          maxZoom: 19
-        }),
-        'Satellite': satelliteLayer
+        'Satellite': satelliteLayer,
+        'Street Map': streetLayer
       };
       L.control.layers(baseLayers).addTo(this.map);
 
@@ -265,6 +279,8 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
       this.marker.on('dragend', () => {
         const position = this.marker.getLatLng();
         this.ngZone.run(() => {
+          this.locationConfirmed = false;
+          this.locationError = '';
           this.updateLocationFromCoords(position.lat, position.lng);
         });
       });
@@ -272,6 +288,8 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
       // Map click event to place marker
       this.map.on('click', (e: any) => {
         this.ngZone.run(() => {
+          this.locationConfirmed = false;
+          this.locationError = '';
           const { lat, lng } = e.latlng;
           this.placeMarker(lat, lng);
           this.updateLocationFromCoords(lat, lng);
@@ -325,6 +343,10 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   }
 
   searchAddress(): void {
+    if (this.isPasting) {
+      this.searchingAddress = false;
+      return;
+    }
     const query = this.orderForm.get('address')?.value;
     if (!query || query.length < 3) {
       this.searchResults = [];
@@ -339,6 +361,10 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private performAddressSearch(query: string): void {
+    if (this.isPasting) {
+      this.searchingAddress = false;
+      return;
+    }
     if (!query || query.length < 3) {
       this.searchResults = [];
       this.showSearchResults = false;
@@ -346,11 +372,7 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    // Search using Nominatim (free)
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&limit=5`;
-
-    fetch(url)
-      .then(response => response.json())
+    this.fetchGeocode(query)
       .then(data => {
         this.ngZone.run(() => {
           this.searchResults = data || [];
@@ -375,9 +397,15 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
     // Update form
     this.orderForm.patchValue({ address });
 
-    // Place marker and center map
-    this.placeMarker(lat, lng);
-    this.map.setView([lat, lng], 18);
+    // Place marker and zoom in
+    if (this.map && this.marker) {
+      if (!this.map.hasLayer(this.marker)) {
+        this.marker.addTo(this.map);
+      }
+      this.marker.setLatLng([lat, lng]);
+      this.map.invalidateSize();
+      this.map.flyTo([lat, lng], 18, { duration: 1.5 });
+    }
 
     // Store location
     this.selectedLocation = { lat, lng, address };
@@ -391,7 +419,114 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   hideSearchResults(): void {
     setTimeout(() => {
       this.showSearchResults = false;
+      this.searchingAddress = false;
     }, 200);
+  }
+
+  onAddressPaste(event: ClipboardEvent): void {
+    const pastedText = event.clipboardData?.getData('text')?.trim();
+    console.log('[PASTE] Pasted text:', pastedText);
+    if (!pastedText || pastedText.length < 3) {
+      console.log('[PASTE] Text too short, skipping');
+      return;
+    }
+
+    this.isPasting = true;
+    this.searchingAddress = true;
+    this.locationConfirmed = false;
+    this.searchResults = [];
+    this.showSearchResults = false;
+
+    // Delay to let input value update and skip the (input) event
+    setTimeout(() => {
+      console.log('[PASTE] Starting geocode for:', pastedText);
+      this.geocodeAndPlaceMarker(pastedText);
+      // Keep isPasting true a bit longer to block any trailing (input) events
+      setTimeout(() => { this.isPasting = false; }, 500);
+    }, 300);
+  }
+
+  private geocodeAndPlaceMarker(query: string): void {
+    console.log('[GEOCODE] Starting geocode for:', query);
+    this.fetchGeocode(query)
+      .then(data => {
+        console.log('[GEOCODE] Results:', data);
+        this.ngZone.run(() => {
+          this.searchingAddress = false;
+          this.searchResults = [];
+          this.showSearchResults = false;
+
+          if (data && data.length > 0) {
+            const result = data[0];
+            const lat = parseFloat(result.lat);
+            const lng = parseFloat(result.lon);
+            // Keep the user's original pasted text in the input
+            const address = this.orderForm.get('address')?.value || result.display_name;
+            console.log('[GEOCODE] Found location:', { lat, lng, address });
+
+            // Place marker and zoom
+            console.log('[GEOCODE] Map exists:', !!this.map, 'Marker exists:', !!this.marker);
+            if (this.map && this.marker) {
+              if (!this.map.hasLayer(this.marker)) {
+                this.marker.addTo(this.map);
+              }
+              this.marker.setLatLng([lat, lng]);
+              this.map.invalidateSize();
+              this.map.flyTo([lat, lng], 18, { duration: 1.5 });
+              console.log('[GEOCODE] Marker placed and map flying to location');
+            }
+
+            this.selectedLocation = { lat, lng, address };
+          } else {
+            console.log('[GEOCODE] No results found for query');
+          }
+        });
+      })
+      .catch((err) => {
+        console.error('[GEOCODE] Failed:', err);
+        this.ngZone.run(() => {
+          this.searchingAddress = false;
+        });
+      });
+  }
+
+  private fetchGeocode(query: string): Promise<any[]> {
+    // Use Photon (Komoot) - handles abbreviations and worldwide addresses better
+    const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`;
+    console.log('[GEOCODE] Fetching Photon:', photonUrl);
+
+    return fetch(photonUrl, {
+      headers: { 'Accept': 'application/json' }
+    })
+      .then(response => {
+        if (!response.ok) throw new Error(`Photon HTTP ${response.status}`);
+        return response.json();
+      })
+      .then(geojson => {
+        // Convert Photon GeoJSON to Nominatim-like format
+        if (geojson.features && geojson.features.length > 0) {
+          return geojson.features.map((f: any) => {
+            const props = f.properties || {};
+            const coords = f.geometry?.coordinates || [];
+            // Build full address from all available parts
+            const streetPart = [props.housenumber, props.street].filter(Boolean).join(' ');
+            const parts = [streetPart, props.city, props.county, props.state, props.postcode, props.country].filter(Boolean);
+            return {
+              lat: String(coords[1]),
+              lon: String(coords[0]),
+              display_name: parts.join(', ') || props.name || query
+            };
+          });
+        }
+        return [];
+      })
+      .catch(err => {
+        console.warn('[GEOCODE] Photon failed, falling back to Nominatim:', err);
+        // Fallback to Nominatim
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`;
+        return fetch(nominatimUrl, { headers: { 'Accept': 'application/json' } })
+          .then(r => r.json());
+      });
   }
 
   onAddressInput(event: Event): void {
@@ -402,6 +537,7 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   confirmLocation(): void {
     if (this.selectedLocation) {
       this.locationConfirmed = true;
+      this.locationError = '';
     }
   }
 
@@ -445,8 +581,26 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
 
   onFileSelect(event: Event): void {
     const input = event.target as HTMLInputElement;
+    this.fileError = '';
     if (input.files) {
-      this.selectedFiles = Array.from(input.files);
+      const files = Array.from(input.files);
+      const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+      const maxSizeMB = 10;
+
+      for (const file of files) {
+        if (!allowedTypes.includes(file.type)) {
+          this.fileError = `"${file.name}" is not a supported file type. Use JPG, PNG, or PDF.`;
+          input.value = '';
+          return;
+        }
+        if (file.size > maxSizeMB * 1024 * 1024) {
+          this.fileError = `"${file.name}" exceeds the ${maxSizeMB}MB size limit.`;
+          input.value = '';
+          return;
+        }
+      }
+
+      this.selectedFiles = files;
     }
   }
 
@@ -455,16 +609,67 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onSubmit(): void {
-    if (this.orderForm.invalid) {
-      this.markFormGroupTouched(this.orderForm);
+    // Clear previous errors
+    this.errorMessage = '';
+    this.locationError = '';
+    this.reportTypeError = '';
+    this.structureTypeError = '';
+    this.fileError = '';
+
+    this.markFormGroupTouched(this.orderForm);
+
+    let hasError = false;
+    let firstErrorSection = '';
+
+    // Validate address + location
+    if (this.orderForm.get('address')?.invalid) {
+      if (!firstErrorSection) firstErrorSection = 'address';
+      hasError = true;
+    }
+
+    // Validate location confirmed
+    if (!this.locationConfirmed) {
+      this.locationError = 'Please confirm the pin location on the map';
+      if (!firstErrorSection) firstErrorSection = 'address';
+      hasError = true;
+    }
+
+    // Validate report type
+    if (this.orderForm.get('reportType')?.invalid) {
+      this.reportTypeError = 'Please select a report type';
+      if (!firstErrorSection) firstErrorSection = 'reportType';
+      hasError = true;
+    }
+
+    // Validate structure type
+    if (this.orderForm.get('structureType')?.invalid) {
+      this.structureTypeError = 'Please select a structure type';
+      if (!firstErrorSection) firstErrorSection = 'structureType';
+      hasError = true;
+    }
+
+    // Validate files if provided
+    if (this.fileError) {
+      if (!firstErrorSection) firstErrorSection = 'photos';
+      hasError = true;
+    }
+
+    if (hasError) {
+      // Expand and scroll to first error section
+      if (firstErrorSection) {
+        this.expandedSections[firstErrorSection] = true;
+        setTimeout(() => {
+          const sectionEl = document.querySelector(`.accordion-section.${firstErrorSection}-section`) ||
+            document.querySelector(`[data-section="${firstErrorSection}"]`);
+          if (sectionEl) {
+            sectionEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+      }
       return;
     }
 
     const selectedReportType = this.getSelectedReportType();
-    if (!selectedReportType) {
-      this.errorMessage = 'Please select a report type';
-      return;
-    }
 
     // Store order data for review page
     const formValue = this.orderForm.value;
@@ -503,21 +708,61 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   }
 
   addToCart(): void {
-    if (this.orderForm.invalid) {
-      this.markFormGroupTouched(this.orderForm);
+    // Clear previous errors
+    this.errorMessage = '';
+    this.locationError = '';
+    this.reportTypeError = '';
+    this.structureTypeError = '';
+    this.fileError = '';
+
+    this.markFormGroupTouched(this.orderForm);
+
+    let hasError = false;
+    let firstErrorSection = '';
+
+    if (this.orderForm.get('address')?.invalid) {
+      if (!firstErrorSection) firstErrorSection = 'address';
+      hasError = true;
+    }
+
+    if (!this.locationConfirmed) {
+      this.locationError = 'Please confirm the pin location on the map';
+      if (!firstErrorSection) firstErrorSection = 'address';
+      hasError = true;
+    }
+
+    if (this.orderForm.get('reportType')?.invalid) {
+      this.reportTypeError = 'Please select a report type';
+      if (!firstErrorSection) firstErrorSection = 'reportType';
+      hasError = true;
+    }
+
+    if (this.orderForm.get('structureType')?.invalid) {
+      this.structureTypeError = 'Please select a structure type';
+      if (!firstErrorSection) firstErrorSection = 'structureType';
+      hasError = true;
+    }
+
+    if (this.fileError) {
+      if (!firstErrorSection) firstErrorSection = 'photos';
+      hasError = true;
+    }
+
+    if (hasError) {
+      if (firstErrorSection) {
+        this.expandedSections[firstErrorSection] = true;
+        setTimeout(() => {
+          const sectionEl = document.querySelector(`.accordion-section.${firstErrorSection}-section`) ||
+            document.querySelector(`[data-section="${firstErrorSection}"]`);
+          if (sectionEl) {
+            sectionEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+      }
       return;
     }
 
-    if (!this.selectedLocation) {
-      this.errorMessage = 'Please select a location on the map';
-      return;
-    }
-
-    const selectedReportType = this.getSelectedReportType();
-    if (!selectedReportType) {
-      this.errorMessage = 'Please select a report type';
-      return;
-    }
+    const selectedReportType = this.getSelectedReportType()!;
 
     // Build addons array
     const addonsArray: { id: string; name: string; price: number }[] = [];
@@ -530,14 +775,14 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
     });
 
     // Generate project name from address
-    const addressParts = this.selectedLocation.address.split(',');
+    const addressParts = this.selectedLocation!.address.split(',');
     const projectName = addressParts[0] || 'Rooftop Project';
 
     // Add to cart
     this.cartService.addToCart({
       projectName: projectName,
-      projectAddress: this.selectedLocation.address,
-      location: { lat: this.selectedLocation.lat, lng: this.selectedLocation.lng, address: this.selectedLocation.address },
+      projectAddress: this.selectedLocation!.address,
+      location: { lat: this.selectedLocation!.lat, lng: this.selectedLocation!.lng, address: this.selectedLocation!.address },
       reportType: {
         id: selectedReportType.id,
         name: selectedReportType.name,
@@ -571,6 +816,10 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
     // Reset location
     this.selectedLocation = null;
     this.locationConfirmed = false;
+    this.locationError = '';
+    this.reportTypeError = '';
+    this.structureTypeError = '';
+    this.fileError = '';
 
     // Clear marker from map
     if (this.map && this.marker && this.map.hasLayer(this.marker)) {
@@ -619,7 +868,8 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   private getFieldLabel(fieldName: string): string {
     const labels: { [key: string]: string } = {
       'address': 'Address',
-      'reportType': 'Report type'
+      'reportType': 'Report type',
+      'structureType': 'Structure type'
     };
     return labels[fieldName] || fieldName;
   }
