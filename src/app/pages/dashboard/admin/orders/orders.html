@@ -217,8 +217,8 @@
     </div>
 
     <div class="job-details-content" *ngIf="detailsOrder">
-      <!-- Multi-Item Order Display - One item at a time with navigation -->
-      <ng-container *ngIf="detailsOrder.items && detailsOrder.items.length > 0">
+      <!-- Item Display with navigation -->
+      <ng-container *ngIf="detailsOrder.items">
         <!-- Item Navigation Header -->
         <div class="item-navigation" *ngIf="hasMultipleItems()">
           <button class="nav-btn prev-btn" (click)="previousItem()" [disabled]="currentItemIndex === 0">
@@ -304,9 +304,30 @@
               <span class="detail-value price">${{ item.totalPrice.toFixed(2) }}</span>
             </div>
 
-            <!-- File Upload Area -->
-            <div class="file-upload-area">
-              <p>Drag and drop the ESX file(s) here, or click to select file(s)</p>
+            <!-- Site Images -->
+            <div class="site-images-section" *ngIf="item.siteImages && item.siteImages.length > 0">
+              <span class="detail-label">Uploaded Files ({{ item.siteImages.length }}):</span>
+              <div class="site-images-gallery">
+                <ng-container *ngFor="let img of item.siteImages">
+                  <a *ngIf="getFileType(img.name) === 'image'" [href]="img.url" target="_blank" class="gallery-item image-item" [title]="img.name">
+                    <img [src]="img.url" [alt]="img.name" />
+                  </a>
+                  <a *ngIf="getFileType(img.name) === 'pdf'" [href]="img.url" target="_blank" class="gallery-item pdf-item" [title]="img.name">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <span>{{ img.name }}</span>
+                  </a>
+                  <a *ngIf="getFileType(img.name) === 'other'" [href]="img.url" target="_blank" class="gallery-item file-item" [title]="img.name">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                      <polyline points="13 2 13 9 20 9"></polyline>
+                    </svg>
+                    <span>{{ img.name }}</span>
+                  </a>
+                </ng-container>
+              </div>
             </div>
           </div>
 
@@ -323,8 +344,8 @@
             <!-- Map Container -->
             <div class="map-container">
               <iframe
-                *ngIf="item.projectAddress"
-                [src]="getMapUrl(item.projectAddress)"
+                *ngIf="item.projectAddress || item.location"
+                [src]="getMapUrl(item.projectAddress, item.location)"
                 width="100%"
                 height="100%"
                 style="border:0;"
@@ -332,7 +353,7 @@
                 loading="lazy"
                 referrerpolicy="no-referrer-when-downgrade">
               </iframe>
-              <div class="map-placeholder" *ngIf="!item.projectAddress">
+              <div class="map-placeholder" *ngIf="!item.projectAddress && !item.location">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
                   <circle cx="12" cy="10" r="3"></circle>
@@ -344,92 +365,6 @@
         </ng-container>
       </ng-container>
 
-      <!-- Single Item Order Display (Original Layout) -->
-      <ng-container *ngIf="!detailsOrder.items || detailsOrder.items.length === 0">
-        <!-- Left Side - Order Info -->
-        <div class="details-left">
-          <div class="detail-row">
-            <span class="detail-label">Insured:</span>
-            <span class="detail-value">{{ detailsOrder.customerName }}</span>
-          </div>
-
-          <div class="detail-row">
-            <span class="detail-label">Type:</span>
-            <span class="detail-badge type-badge">{{ detailsOrder.reportType.name || 'ESX File' }}</span>
-          </div>
-
-          <div class="detail-row">
-            <span class="detail-label">Pitch:</span>
-            <span class="detail-badge pitch-badge" [ngClass]="detailsOrder.primaryPitch ? 'provided' : 'not-provided'">
-              {{ detailsOrder.primaryPitch || 'Not provided' }}
-            </span>
-          </div>
-
-          <div class="detail-row">
-            <span class="detail-label">Category:</span>
-            <span class="detail-value">{{ detailsOrder.structureCategoryName }} ({{ detailsOrder.structureCategorySqRange }})</span>
-          </div>
-
-          <div class="detail-row">
-            <span class="detail-label">Note:</span>
-            <span class="detail-value note">{{ detailsOrder.specialInstructions || '-' }}</span>
-          </div>
-
-          <div class="detail-row">
-            <span class="detail-label">Status:</span>
-            <span class="detail-badge status-badge" [ngClass]="getStatusClass(detailsOrder.status)">
-              {{ getStatusLabel(detailsOrder.status) }}
-            </span>
-          </div>
-
-          <div class="detail-row">
-            <span class="detail-label">Created:</span>
-            <span class="detail-value date">{{ formatDateTime(detailsOrder.createdAt) }}</span>
-          </div>
-
-          <div class="detail-row">
-            <span class="detail-label">Total:</span>
-            <span class="detail-value price">${{ detailsOrder.totalPrice.toFixed(2) }}</span>
-          </div>
-
-          <!-- File Upload Area -->
-          <div class="file-upload-area">
-            <p>Drag and drop the ESX file(s) here, or click to select file(s)</p>
-          </div>
-        </div>
-
-        <!-- Right Side - Address & Map -->
-        <div class="details-right">
-          <div class="address-section">
-            <div class="address-label">Address:</div>
-            <div class="address-coords" *ngIf="detailsOrder.location">
-              [{{ detailsOrder.location.lat }}, {{ detailsOrder.location.lng }}]
-            </div>
-            <div class="address-text">{{ detailsOrder.projectAddress }}</div>
-          </div>
-
-          <!-- Map Container -->
-          <div class="map-container">
-            <iframe
-              *ngIf="detailsOrder.projectAddress"
-              [src]="getMapUrl(detailsOrder.projectAddress)"
-              width="100%"
-              height="100%"
-              style="border:0;"
-              allowfullscreen=""
-              loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade">
-            </iframe>
-            <div class="map-placeholder" *ngIf="!detailsOrder.projectAddress">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
-              <p>No address provided</p>
-            </div>
-          </div>
-        </div>
-      </ng-container>
     </div>
   </div>
 </div>

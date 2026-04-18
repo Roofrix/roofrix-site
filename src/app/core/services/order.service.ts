@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { FirestoreService } from './firestore.service';
+import { StorageService } from './storage.service';
 import { Observable } from 'rxjs';
 
 export type OrderStatus =
@@ -47,26 +48,33 @@ export interface StatusTimelineEntry {
   changedAt: any;
   changedBy: string;
   changedByEmail: string;
-  changedByRole: 'admin' | 'customer' | 'designer' | 'system';
   notes?: string;
 }
 
 /**
  * Individual item in a multi-item order (cart checkout)
  */
+export interface SiteImage {
+  url: string;
+  name: string;
+}
+
 export interface OrderItem {
   projectName: string;
   projectAddress: string;
-  location: { lat: number; lng: number; address?: string };
+  location: { lat: number; lng: number };
   reportType: OrderReportType;
   addons: OrderAddon[];
   structureCategory: string;
   structureCategoryName: string;
   structureCategorySqRange: string;
+  primaryPitch?: string;
+  secondaryPitch?: string;
   specialInstructions: string;
   basePrice: number;
   addonsTotal: number;
   totalPrice: number;
+  siteImages?: SiteImage[];
 }
 
 /**
@@ -74,124 +82,43 @@ export interface OrderItem {
  */
 export interface Order {
   id: string;
-  orderNumber: string; // e.g., "ORD-2024-0001"
+  orderNumber: string;
+  projectName: string;
 
   // Customer info
   customerId: string;
   customerEmail: string;
   customerName: string;
 
-  // Assigned designer
-  assignedDesignerId?: string;
-  assignedDesignerEmail?: string;
-
-  // Address
-  projectAddress: string;
-
-  // Location coordinates
-  latitude?: number | null;
-  longitude?: number | null;
-  location?: { lat: number; lng: number; address: string } | null;
-
-  // Selected Report Type (snapshot with price at time of order)
-  reportType: OrderReportType;
-
-  // Selected Addons (snapshot with prices at time of order)
-  addons: OrderAddon[];
-
-  // Structure Category (Basic, Moderate, Complex)
-  structureCategory: string;
-  structureCategoryName: string;
-  structureCategorySqRange: string;
-
-  // Roof Pitch (optional)
-  primaryPitch?: string;
-  secondaryPitch?: string;
-
-  // Special Instructions
-  specialInstructions?: string;
-
-  // Pricing (calculated at time of order)
-  basePrice: number;       // Report type price
-  addonsTotal: number;     // Sum of addon prices
-  totalPrice: number;      // basePrice + addonsTotal
+  // Pricing (totals across all items)
+  totalPrice: number;
 
   // Current Status
   status: OrderStatus;
-
-  // Status Timeline (embedded array for quick access)
   statusTimeline: StatusTimelineEntry[];
-
-  // File references
-  siteImages: string[];    // Firebase Storage URLs (customer uploads)
-  designFiles: string[];   // Firebase Storage URLs (designer uploads)
+  priority: 'low' | 'medium' | 'high';
+  rushDeadline?: any;
 
   // Timestamps
   createdAt: any;
   updatedAt: any;
   completedAt?: any;
-  workStartedAt?: any;  // When work actually started (for running timer)
-  rushDeadline?: any;   // Deadline for rush orders (2 hours from order)
+  workStartedAt?: any;
 
-  // Priority (auto-set to 'high' if Rush addon selected)
-  priority: 'low' | 'medium' | 'high';
-
-  // Multi-item order support (from cart checkout)
-  items?: OrderItem[];
-
-  // Legacy fields (for backward compatibility)
-  projectName?: string;
-  projectDescription?: string;
-  roofType?: string;
-  estimatedArea?: number;
-  structureType?: string; // Legacy - use structureCategory instead
+  // Items (always at least one)
+  items: OrderItem[];
 }
 
 /**
  * Data required to create a new order
  */
 export interface CreateOrderData {
-  // Customer info
   customerId: string;
   customerEmail: string;
   customerName: string;
-
-  // Address
-  projectAddress: string;
-
-  // Location coordinates
-  latitude?: number | null;
-  longitude?: number | null;
-  location?: { lat: number; lng: number; address: string } | null;
-
-  // Selected Report Type (with current price)
-  reportType: OrderReportType;
-
-  // Selected Addons (with current prices)
-  addons: OrderAddon[];
-
-  // Structure Category (Basic, Moderate, Complex)
-  structureCategory: string;
-  structureCategoryName: string;
-  structureCategorySqRange: string;
-
-  // Roof Pitch (optional)
-  primaryPitch?: string;
-  secondaryPitch?: string;
-
-  // Special Instructions
-  specialInstructions?: string;
-
-  // Calculated pricing
-  basePrice: number;
-  addonsTotal: number;
   totalPrice: number;
-
-  // Priority
   priority: 'low' | 'medium' | 'high';
-
-  // Multi-item order support (from cart checkout)
-  items?: OrderItem[];
+  items: OrderItem[];
 }
 
 export interface OrderMessage {
@@ -199,7 +126,7 @@ export interface OrderMessage {
   orderId: string;
   senderId: string;
   senderEmail: string;
-  senderRole: 'admin' | 'customer' | 'designer';
+  senderRole: 'admin' | 'customer';
   message: string;
   attachments?: string[]; // Firebase Storage URLs
   createdAt: any;
@@ -212,17 +139,18 @@ export interface OrderMessage {
 })
 export class OrderService {
   private firestoreService = inject(FirestoreService);
+  private storageService = inject(StorageService);
 
   private readonly ORDERS_COLLECTION = 'orders';
   private readonly MESSAGES_COLLECTION = 'messages';
 
   /**
-   * Generate unique order number
+   * Generate sequential order number using Firestore counter
    */
-  private generateOrderNumber(): string {
+  private async generateOrderNumber(): Promise<string> {
     const year = new Date().getFullYear();
-    const timestamp = Date.now().toString().slice(-6);
-    return `ORD-${year}-${timestamp}`;
+    const seq = await this.firestoreService.incrementCounter('system', 'counters', 'orderNumber');
+    return `RR-${year}-${seq.toString().padStart(4, '0')}`;
   }
 
   /**
@@ -231,77 +159,56 @@ export class OrderService {
   async createOrder(data: CreateOrderData, createdBy: string): Promise<string> {
     try {
       const timestamp = this.firestoreService.getTimestamp();
-      const orderNumber = this.generateOrderNumber();
-      const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const orderNumber = await this.generateOrderNumber();
 
-      // Create initial status timeline entry
       const initialStatusEntry: StatusTimelineEntry = {
         status: 'order_placed',
         changedAt: timestamp,
         changedBy: createdBy,
         changedByEmail: data.customerEmail,
-        changedByRole: 'customer',
         notes: 'Order created'
       };
 
-      // Check if this is a rush order (has 2hr rush addon)
-      const isRushOrder = data.addons.some(addon =>
-        addon.name.toLowerCase().includes('rush') || addon.id.includes('rush')
+      // Check rush across all items
+      const isRushOrder = data.items.some(item =>
+        item.addons.some(addon =>
+          addon.name.toLowerCase().includes('rush') || addon.id.includes('rush')
+        )
       );
 
-      // Calculate rush deadline (2 hours from now) if rush order
       const rushDeadline = isRushOrder
         ? new Date(Date.now() + 2 * 60 * 60 * 1000)
         : null;
 
-      // Generate project name from report type and address
-      const projectName = data.items && data.items.length > 1
-        ? `${data.items.length} Projects - ${data.items[0].projectName}`
-        : `${data.reportType.name} - ${data.projectAddress}`;
+      // Generate project name
+      const firstItem = data.items[0];
+      const projectName = data.items.length > 1
+        ? `${data.items.length} Projects - ${firstItem.projectName}`
+        : `${firstItem.reportType.name} - ${firstItem.projectAddress}`;
 
       const order: Omit<Order, 'id'> = {
         orderNumber,
+        projectName,
         customerId: data.customerId,
         customerEmail: data.customerEmail,
         customerName: data.customerName,
-        projectAddress: data.projectAddress,
-        latitude: data.latitude || null,
-        longitude: data.longitude || null,
-        location: data.location || null,
-        reportType: data.reportType,
-        addons: data.addons,
-        // Structure category
-        structureCategory: data.structureCategory,
-        structureCategoryName: data.structureCategoryName,
-        structureCategorySqRange: data.structureCategorySqRange,
-        primaryPitch: data.primaryPitch || '',
-        secondaryPitch: data.secondaryPitch || '',
-        specialInstructions: data.specialInstructions || '',
-        basePrice: data.basePrice,
-        addonsTotal: data.addonsTotal,
         totalPrice: data.totalPrice,
         status: 'order_placed',
         statusTimeline: [initialStatusEntry],
-        siteImages: [],
-        designFiles: [],
+        priority: isRushOrder ? 'high' : data.priority,
+        rushDeadline: rushDeadline,
         createdAt: timestamp,
         updatedAt: timestamp,
-        rushDeadline: rushDeadline,
-        priority: data.priority,
-        // Multi-item order support
-        items: data.items || undefined,
-        // Legacy fields
-        projectName: projectName,
-        projectDescription: data.specialInstructions || ''
+        items: data.items,
       };
 
       await this.firestoreService.setDocument<Omit<Order, 'id'>>(
         this.ORDERS_COLLECTION,
-        orderId,
+        orderNumber,
         order
       );
 
-      return orderId;
+      return orderNumber;
     } catch (error) {
       console.error('Error creating order:', error);
       throw error;
@@ -323,6 +230,10 @@ export class OrderService {
     }
   }
 
+  async updateOrder(orderId: string, data: Partial<Order>): Promise<void> {
+    await this.firestoreService.updateDocument(this.ORDERS_COLLECTION, orderId, data);
+  }
+
   /**
    * Update order status with timeline entry
    */
@@ -331,7 +242,6 @@ export class OrderService {
     newStatus: OrderStatus,
     changedBy: string,
     changedByEmail: string,
-    changedByRole: 'admin' | 'customer' | 'designer',
     notes?: string
   ): Promise<void> {
     try {
@@ -349,7 +259,6 @@ export class OrderService {
         changedAt: timestamp,
         changedBy,
         changedByEmail,
-        changedByRole,
         notes: notes || ''
       };
 
@@ -381,51 +290,6 @@ export class OrderService {
   }
 
   /**
-   * Assign designer to order
-   */
-  async assignDesigner(
-    orderId: string,
-    designerId: string,
-    designerEmail: string,
-    assignedBy: string,
-    assignedByEmail: string
-  ): Promise<void> {
-    try {
-      const timestamp = this.firestoreService.getTimestamp();
-
-      // Get current order
-      const order = await this.getOrder(orderId);
-      if (!order) {
-        throw new Error('Order not found');
-      }
-
-      // Create timeline entry for assignment
-      const timelineEntry: StatusTimelineEntry = {
-        status: order.status,
-        changedAt: timestamp,
-        changedBy: assignedBy,
-        changedByEmail: assignedByEmail,
-        changedByRole: 'admin',
-        notes: `Assigned to designer: ${designerEmail}`
-      };
-
-      await this.firestoreService.updateDocument(
-        this.ORDERS_COLLECTION,
-        orderId,
-        {
-          assignedDesignerId: designerId,
-          assignedDesignerEmail: designerEmail,
-          statusTimeline: [...order.statusTimeline, timelineEntry],
-          updatedAt: timestamp
-        }
-      );
-    } catch (error) {
-      console.error('Error assigning designer:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Get status timeline for an order
    */
   async getStatusTimeline(orderId: string): Promise<StatusTimelineEntry[]> {
@@ -450,22 +314,6 @@ export class OrderService {
       );
     } catch (error) {
       console.error('Error getting customer orders:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get orders by designer
-   */
-  async getOrdersByDesigner(designerId: string): Promise<Order[]> {
-    try {
-      const { where, orderBy } = this.firestoreService.getQueryHelpers();
-      return await this.firestoreService.getDocuments<Order>(
-        this.ORDERS_COLLECTION,
-        [where('assignedDesignerId', '==', designerId), orderBy('createdAt', 'desc')]
-      );
-    } catch (error) {
-      console.error('Error getting designer orders:', error);
       throw error;
     }
   }
@@ -589,7 +437,7 @@ export class OrderService {
     orderId: string,
     senderId: string,
     senderEmail: string,
-    senderRole: 'admin' | 'customer' | 'designer',
+    senderRole: 'admin' | 'customer',
     message: string,
     attachments?: string[]
   ): Promise<void> {
@@ -647,79 +495,37 @@ export class OrderService {
     );
   }
 
-  /**
-   * Add site images to order - optimized with arrayUnion (no full document read required)
-   */
-  async addSiteImages(orderId: string, imageUrls: string[]): Promise<void> {
-    try {
-      await this.firestoreService.appendToArrayField(
-        this.ORDERS_COLLECTION,
-        orderId,
-        'siteImages',
-        imageUrls
-      );
-    } catch (error) {
-      console.error('Error adding site images:', error);
-      throw error;
-    }
-  }
+
 
   /**
-   * Add design files to order - optimized with arrayUnion (no full document read required)
-   */
-  async addDesignFiles(orderId: string, fileUrls: string[]): Promise<void> {
-    try {
-      await this.firestoreService.appendToArrayField(
-        this.ORDERS_COLLECTION,
-        orderId,
-        'designFiles',
-        fileUrls
-      );
-    } catch (error) {
-      console.error('Error adding design files:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove site image from order
-   */
-  async removeSiteImage(orderId: string, imageUrl: string): Promise<void> {
-    try {
-      await this.firestoreService.removeFromArrayField(
-        this.ORDERS_COLLECTION,
-        orderId,
-        'siteImages',
-        [imageUrl]
-      );
-    } catch (error) {
-      console.error('Error removing site image:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove design file from order
-   */
-  async removeDesignFile(orderId: string, fileUrl: string): Promise<void> {
-    try {
-      await this.firestoreService.removeFromArrayField(
-        this.ORDERS_COLLECTION,
-        orderId,
-        'designFiles',
-        [fileUrl]
-      );
-    } catch (error) {
-      console.error('Error removing design file:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Delete an order
+   * Delete an order (messages, storage files, then document)
    */
   async deleteOrder(orderId: string): Promise<void> {
     try {
+      // 1. Get order to find siteImages URLs
+      const order = await this.getOrder(orderId);
+
+      // 2. Delete messages sub-collection
+      const messages = await this.getOrderMessages(orderId);
+      for (const msg of messages) {
+        await this.firestoreService.deleteDocument(
+          `${this.ORDERS_COLLECTION}/${orderId}/${this.MESSAGES_COLLECTION}`,
+          msg.id
+        );
+      }
+
+      // 3. Delete storage files from all items
+      if (order?.items) {
+        const allUrls = order.items
+          .flatMap(item => (item.siteImages || []).map(img => img.url));
+        if (allUrls.length > 0) {
+          await this.storageService.deleteMultipleFiles(allUrls).catch(err => {
+            console.warn('Some storage files could not be deleted:', err);
+          });
+        }
+      }
+
+      // 4. Delete order document
       await this.firestoreService.deleteDocument(
         this.ORDERS_COLLECTION,
         orderId

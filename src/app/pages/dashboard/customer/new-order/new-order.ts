@@ -1,22 +1,23 @@
-import { Component, inject, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit, NgZone } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit, NgZone, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { OrderService, OrderReportType, OrderAddon } from '../../../../core/services/order.service';
 import { CartService } from '../../../../core/services/cart.service';
-import { Subscription, Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { FileTransferService } from '../../../../core/services/file-transfer.service';
+import { Subscription } from 'rxjs';
 import {
   PricingService,
   StructureCategory,
   StructureCategoryId,
   StructureCategoryPricing,
   ReportType as PricingReportType,
-  Addon as PricingAddon
+  Addon as PricingAddon,
+  StructureType
 } from '../../../../core/services/pricing.service';
 
-declare var L: any;
+declare var google: any;
 
 // Local interfaces
 interface ReportType {
@@ -57,14 +58,12 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   private pricingService = inject(PricingService);
   private router = inject(Router);
   private ngZone = inject(NgZone);
+  private fileTransferService = inject(FileTransferService);
 
   private routeSubscription?: Subscription;
-  private searchSubscription?: Subscription;
   private activatedRoute = inject(ActivatedRoute);
 
-  // Debounced address search
-  private searchSubject = new Subject<string>();
-  searchingAddress = false;
+  searchingAddress = signal(false);
 
   orderForm!: FormGroup;
   loading = false;
@@ -72,13 +71,13 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   errorMessage = '';
   successMessage = '';
 
-  // Leaflet Maps
+  // Google Maps
   map: any;
   marker: any;
+  geocoder: any;
+  autocomplete: any;
   selectedLocation: SelectedLocation | null = null;
   locationConfirmed = false;
-  searchResults: any[] = [];
-  showSearchResults = false;
 
   // Accordion state
   expandedSections: { [key: string]: boolean } = {
@@ -98,6 +97,7 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   // Pricing data loaded based on structure category
   reportTypes: ReportType[] = [];
   addons: Addon[] = [];
+  structureTypes: StructureType[] = [];
 
   // Selected addons tracking
   selectedAddons: Map<string, Addon> = new Map();
@@ -111,8 +111,6 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   reportTypeError = '';
   structureTypeError = '';
 
-  // Flag to skip search after paste (geocode handles it)
-  private isPasting = false;
 
   // Selected product from products page
   selectedProduct: any = null;
@@ -146,48 +144,88 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
       this.structureTypeError = '';
     });
 
-    // Set up debounced address search (300ms delay)
-    this.searchSubscription = this.searchSubject.pipe(
-      debounceTime(300),
-      distinctUntilChanged()
-    ).subscribe(query => {
-      this.performAddressSearch(query);
-    });
   }
 
   ngOnDestroy(): void {
     if (this.routeSubscription) {
       this.routeSubscription.unsubscribe();
     }
-    if (this.searchSubscription) {
-      this.searchSubscription.unsubscribe();
-    }
   }
 
   /**
    * Load structure category from sessionStorage and update pricing
    */
-  private loadStructureCategoryFromStorage(): void {
+  private restoreOrderData(): void {
+    const saved = sessionStorage.getItem('orderData');
+    if (!saved) return;
+
+    try {
+      const data = JSON.parse(saved);
+
+      // Restore form fields
+      this.orderForm.patchValue({
+        address: data.address || '',
+        reportType: data.reportType?.id || '',
+        structureType: data.structureType || '',
+        primaryPitch: data.primaryPitch || '',
+        secondaryPitch: data.secondaryPitch || '',
+        specialInstructions: data.specialInstructions || ''
+      });
+
+      // Restore location and map pin
+      if (data.location) {
+        this.selectedLocation = data.location;
+        this.locationConfirmed = true;
+        // Place marker after map initializes
+        setTimeout(() => {
+          if (this.map && data.location.lat && data.location.lng) {
+            this.placeMarker(data.location.lat, data.location.lng);
+          }
+        }, 500);
+      }
+
+      // Restore selected addons
+      if (data.addons && Array.isArray(data.addons)) {
+        this.selectedAddons.clear();
+        for (const addon of data.addons) {
+          this.selectedAddons.set(addon.id, addon);
+        }
+      }
+
+      // Restore files from FileTransferService (in-memory, survives navigation)
+      const savedFiles = this.fileTransferService.getFiles();
+      if (savedFiles.length > 0) {
+        this.selectedFiles = savedFiles;
+      }
+    } catch {
+      // Invalid data, ignore
+    }
+  }
+
+  private async loadStructureCategoryFromStorage(): Promise<void> {
     const storedCategory = sessionStorage.getItem('selectedStructureType');
     if (storedCategory && ['basic', 'moderate', 'complex'].includes(storedCategory)) {
       const newCategory = storedCategory as StructureCategoryId;
       // Only reload if category changed
       if (newCategory !== this.selectedStructureCategory || !this.structureCategoryInfo) {
         this.selectedStructureCategory = newCategory;
-        this.loadPricingForCategory(this.selectedStructureCategory);
+        await this.loadPricingForCategory(this.selectedStructureCategory);
         // Reset selected addons when category changes
         this.selectedAddons.clear();
       }
     } else if (!this.structureCategoryInfo) {
       // Load default if no stored category and not already loaded
-      this.loadPricingForCategory(this.selectedStructureCategory);
+      await this.loadPricingForCategory(this.selectedStructureCategory);
     }
   }
 
   /**
    * Load pricing data for the selected structure category
    */
-  private loadPricingForCategory(categoryId: StructureCategoryId): void {
+  private async loadPricingForCategory(categoryId: StructureCategoryId): Promise<void> {
+    if (!this.pricingService.isLoaded()) {
+      await this.pricingService.loadPricing();
+    }
     const pricing = this.pricingService.getPricingByCategory(categoryId);
 
     if (pricing) {
@@ -204,329 +242,161 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
         price: addon.price,
         badge: addon.badge
       }));
+      this.structureTypes = pricing.structureTypes;
 
-      // Set default report type if form exists
-      if (this.orderForm && this.reportTypes.length > 0) {
-        this.orderForm.patchValue({ reportType: this.reportTypes[0].id });
+      // Restore saved data or set default report type
+      if (this.orderForm) {
+        const hasSavedData = sessionStorage.getItem('orderData');
+        if (hasSavedData) {
+          this.restoreOrderData();
+        } else if (this.reportTypes.length > 0) {
+          this.orderForm.patchValue({ reportType: this.reportTypes[0].id });
+        }
       }
     }
   }
 
   ngAfterViewInit(): void {
-    // Delay initialization to ensure DOM is ready
     setTimeout(() => {
-      this.initLeafletMap();
+      this.initGoogleMap();
     }, 100);
   }
 
-  private initLeafletMap(): void {
+  private initGoogleMap(): void {
     try {
-      // Check if Leaflet is loaded
-      if (typeof L === 'undefined') {
-        console.warn('Leaflet not loaded. Map functionality will be limited.');
+      if (typeof google === 'undefined' || !google.maps) {
+        console.warn('Google Maps not loaded.');
         return;
       }
 
-      // Check if map element exists
       if (!this.mapElement?.nativeElement) {
         console.warn('Map element not found.');
         return;
       }
 
       // Default location (USA center)
-      const defaultLocation: [number, number] = [39.8283, -98.5795];
+      const defaultCenter = { lat: 39.8283, lng: -98.5795 };
 
-      // Initialize map
-      this.map = L.map(this.mapElement.nativeElement, {
-        center: defaultLocation,
+      // Initialize map with satellite view
+      this.map = new google.maps.Map(this.mapElement.nativeElement, {
+        center: defaultCenter,
         zoom: 4,
-        zoomControl: true
+        mapTypeId: google.maps.MapTypeId.HYBRID,
+        mapTypeControl: true,
+        mapTypeControlOptions: {
+          style: google.maps.MapTypeControlStyle.DEFAULT,
+          mapTypeIds: [google.maps.MapTypeId.HYBRID, google.maps.MapTypeId.ROADMAP]
+        },
+        zoomControl: true,
+        streetViewControl: false,
+        fullscreenControl: false
       });
 
-      // Add satellite layer as default (ESRI - free)
-      const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: '© Esri',
-        maxZoom: 19
-      }).addTo(this.map);
-
-      // Add street map as alternate option
-      const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-      });
-
-      // Add layer control so user can switch
-      const baseLayers = {
-        'Satellite': satelliteLayer,
-        'Street Map': streetLayer
-      };
-      L.control.layers(baseLayers).addTo(this.map);
-
-      // Create draggable marker (hidden initially)
-      const customIcon = L.divIcon({
-        className: 'custom-marker',
-        html: '<div style="background:#ef4444;width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.3);"></div>',
-        iconSize: [30, 30],
-        iconAnchor: [15, 30]
-      });
-
-      this.marker = L.marker(defaultLocation, {
-        icon: customIcon,
-        draggable: true
-      });
-
-      // Marker drag event
-      this.marker.on('dragend', () => {
-        const position = this.marker.getLatLng();
-        this.ngZone.run(() => {
-          this.locationConfirmed = false;
-          this.locationError = '';
-          this.updateLocationFromCoords(position.lat, position.lng);
-        });
-      });
+      // Initialize geocoder
+      this.geocoder = new google.maps.Geocoder();
 
       // Map click event to place marker
-      this.map.on('click', (e: any) => {
+      this.map.addListener('click', (e: any) => {
         this.ngZone.run(() => {
           this.locationConfirmed = false;
           this.locationError = '';
-          const { lat, lng } = e.latlng;
+          const lat = e.latLng.lat();
+          const lng = e.latLng.lng();
           this.placeMarker(lat, lng);
-          this.updateLocationFromCoords(lat, lng);
+          this.reverseGeocode(lat, lng);
         });
       });
 
+      // Initialize Places Autocomplete
+      this.initAutocomplete();
+
     } catch (error) {
-      console.error('Error initializing Leaflet map:', error);
+      console.error('Error initializing Google Map:', error);
     }
   }
 
   private placeMarker(lat: number, lng: number): void {
-    if (!this.map || !this.marker) return;
+    if (!this.map) return;
 
-    // Add marker to map if not already added
-    if (!this.map.hasLayer(this.marker)) {
-      this.marker.addTo(this.map);
+    const position = { lat, lng };
+
+    if (this.marker) {
+      this.marker.setPosition(position);
+    } else {
+      this.marker = new google.maps.Marker({
+        position,
+        map: this.map,
+        draggable: true
+      });
+
+      // Marker drag event
+      this.marker.addListener('dragend', () => {
+        const pos = this.marker.getPosition();
+        this.ngZone.run(() => {
+          this.locationConfirmed = false;
+          this.locationError = '';
+          this.reverseGeocode(pos.lat(), pos.lng());
+        });
+      });
     }
 
-    // Update marker position
-    this.marker.setLatLng([lat, lng]);
-
-    // Center map on marker
-    this.map.setView([lat, lng], Math.max(this.map.getZoom(), 16));
+    this.map.panTo(position);
+    if (this.map.getZoom() < 16) {
+      this.map.setZoom(18);
+    }
   }
 
-  private updateLocationFromCoords(lat: number, lng: number): void {
-    // Reverse geocode using Nominatim (free)
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`;
+  private reverseGeocode(lat: number, lng: number): void {
+    if (!this.geocoder) return;
 
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
-        this.ngZone.run(() => {
-          if (data && data.display_name) {
-            const address = data.display_name;
-            this.orderForm.patchValue({ address });
-            this.selectedLocation = { lat, lng, address };
-          } else {
-            this.selectedLocation = { lat, lng, address: `${lat.toFixed(6)}, ${lng.toFixed(6)}` };
-          }
-          this.locationConfirmed = false;
-        });
-      })
-      .catch(() => {
-        this.ngZone.run(() => {
+    this.geocoder.geocode({ location: { lat, lng } }, (results: any[], status: string) => {
+      this.ngZone.run(() => {
+        if (status === 'OK' && results && results[0]) {
+          const address = results[0].formatted_address;
+          this.orderForm.patchValue({ address });
+          this.selectedLocation = { lat, lng, address };
+        } else {
           this.selectedLocation = { lat, lng, address: `${lat.toFixed(6)}, ${lng.toFixed(6)}` };
+        }
+        this.locationConfirmed = false;
+      });
+    });
+  }
+
+  private initAutocomplete(): void {
+    if (!this.addressInput?.nativeElement || typeof google === 'undefined') return;
+
+    this.autocomplete = new google.maps.places.Autocomplete(this.addressInput.nativeElement, {
+      types: ['address']
+    });
+
+    this.autocomplete.addListener('place_changed', () => {
+      this.ngZone.run(() => {
+        const place = this.autocomplete.getPlace();
+        if (!place.geometry || !place.geometry.location) return;
+
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        const address = place.formatted_address || this.addressInput.nativeElement.value;
+
+        this.orderForm.patchValue({ address });
+        this.placeMarker(lat, lng);
+        this.map.setZoom(18);
+        this.selectedLocation = { lat, lng, address };
+        this.locationConfirmed = false;
+        setTimeout(() => { this.searchingAddress.set(false); });
+      });
+    });
+
+    // Keep Angular form control in sync with native input changes from autocomplete
+    this.addressInput.nativeElement.addEventListener('input', () => {
+      setTimeout(() => {
+        this.ngZone.run(() => {
+          this.orderForm.patchValue({ address: this.addressInput.nativeElement.value });
           this.locationConfirmed = false;
         });
       });
-  }
-
-  searchAddress(): void {
-    if (this.isPasting) {
-      this.searchingAddress = false;
-      return;
-    }
-    const query = this.orderForm.get('address')?.value;
-    if (!query || query.length < 3) {
-      this.searchResults = [];
-      this.showSearchResults = false;
-      this.searchingAddress = false;
-      return;
-    }
-
-    // Show loading state and emit to debounced subject
-    this.searchingAddress = true;
-    this.searchSubject.next(query);
-  }
-
-  private performAddressSearch(query: string): void {
-    if (this.isPasting) {
-      this.searchingAddress = false;
-      return;
-    }
-    if (!query || query.length < 3) {
-      this.searchResults = [];
-      this.showSearchResults = false;
-      this.searchingAddress = false;
-      return;
-    }
-
-    this.fetchGeocode(query)
-      .then(data => {
-        this.ngZone.run(() => {
-          this.searchResults = data || [];
-          this.showSearchResults = this.searchResults.length > 0;
-          this.searchingAddress = false;
-        });
-      })
-      .catch(() => {
-        this.ngZone.run(() => {
-          this.searchResults = [];
-          this.showSearchResults = false;
-          this.searchingAddress = false;
-        });
-      });
-  }
-
-  selectSearchResult(result: any): void {
-    const lat = parseFloat(result.lat);
-    const lng = parseFloat(result.lon);
-    const address = result.display_name;
-
-    // Update form
-    this.orderForm.patchValue({ address });
-
-    // Place marker and zoom in
-    if (this.map && this.marker) {
-      if (!this.map.hasLayer(this.marker)) {
-        this.marker.addTo(this.map);
-      }
-      this.marker.setLatLng([lat, lng]);
-      this.map.invalidateSize();
-      this.map.flyTo([lat, lng], 18, { duration: 1.5 });
-    }
-
-    // Store location
-    this.selectedLocation = { lat, lng, address };
-    this.locationConfirmed = false;
-
-    // Hide search results
-    this.searchResults = [];
-    this.showSearchResults = false;
-  }
-
-  hideSearchResults(): void {
-    setTimeout(() => {
-      this.showSearchResults = false;
-      this.searchingAddress = false;
-    }, 200);
-  }
-
-  onAddressPaste(event: ClipboardEvent): void {
-    const pastedText = event.clipboardData?.getData('text')?.trim();
-    console.log('[PASTE] Pasted text:', pastedText);
-    if (!pastedText || pastedText.length < 3) {
-      console.log('[PASTE] Text too short, skipping');
-      return;
-    }
-
-    this.isPasting = true;
-    this.searchingAddress = true;
-    this.locationConfirmed = false;
-    this.searchResults = [];
-    this.showSearchResults = false;
-
-    // Delay to let input value update and skip the (input) event
-    setTimeout(() => {
-      console.log('[PASTE] Starting geocode for:', pastedText);
-      this.geocodeAndPlaceMarker(pastedText);
-      // Keep isPasting true a bit longer to block any trailing (input) events
-      setTimeout(() => { this.isPasting = false; }, 500);
-    }, 300);
-  }
-
-  private geocodeAndPlaceMarker(query: string): void {
-    console.log('[GEOCODE] Starting geocode for:', query);
-    this.fetchGeocode(query)
-      .then(data => {
-        console.log('[GEOCODE] Results:', data);
-        this.ngZone.run(() => {
-          this.searchingAddress = false;
-          this.searchResults = [];
-          this.showSearchResults = false;
-
-          if (data && data.length > 0) {
-            const result = data[0];
-            const lat = parseFloat(result.lat);
-            const lng = parseFloat(result.lon);
-            // Keep the user's original pasted text in the input
-            const address = this.orderForm.get('address')?.value || result.display_name;
-            console.log('[GEOCODE] Found location:', { lat, lng, address });
-
-            // Place marker and zoom
-            console.log('[GEOCODE] Map exists:', !!this.map, 'Marker exists:', !!this.marker);
-            if (this.map && this.marker) {
-              if (!this.map.hasLayer(this.marker)) {
-                this.marker.addTo(this.map);
-              }
-              this.marker.setLatLng([lat, lng]);
-              this.map.invalidateSize();
-              this.map.flyTo([lat, lng], 18, { duration: 1.5 });
-              console.log('[GEOCODE] Marker placed and map flying to location');
-            }
-
-            this.selectedLocation = { lat, lng, address };
-          } else {
-            console.log('[GEOCODE] No results found for query');
-          }
-        });
-      })
-      .catch((err) => {
-        console.error('[GEOCODE] Failed:', err);
-        this.ngZone.run(() => {
-          this.searchingAddress = false;
-        });
-      });
-  }
-
-  private fetchGeocode(query: string): Promise<any[]> {
-    // Use Photon (Komoot) - handles abbreviations and worldwide addresses better
-    const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`;
-    console.log('[GEOCODE] Fetching Photon:', photonUrl);
-
-    return fetch(photonUrl, {
-      headers: { 'Accept': 'application/json' }
-    })
-      .then(response => {
-        if (!response.ok) throw new Error(`Photon HTTP ${response.status}`);
-        return response.json();
-      })
-      .then(geojson => {
-        // Convert Photon GeoJSON to Nominatim-like format
-        if (geojson.features && geojson.features.length > 0) {
-          return geojson.features.map((f: any) => {
-            const props = f.properties || {};
-            const coords = f.geometry?.coordinates || [];
-            // Build full address from all available parts
-            const streetPart = [props.housenumber, props.street].filter(Boolean).join(' ');
-            const parts = [streetPart, props.city, props.county, props.state, props.postcode, props.country].filter(Boolean);
-            return {
-              lat: String(coords[1]),
-              lon: String(coords[0]),
-              display_name: parts.join(', ') || props.name || query
-            };
-          });
-        }
-        return [];
-      })
-      .catch(err => {
-        console.warn('[GEOCODE] Photon failed, falling back to Nominatim:', err);
-        // Fallback to Nominatim
-        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`;
-        return fetch(nominatimUrl, { headers: { 'Accept': 'application/json' } })
-          .then(r => r.json());
-      });
+    });
   }
 
   onAddressInput(event: Event): void {
@@ -609,6 +479,10 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onSubmit(): void {
+    console.log('[NEW-ORDER] onSubmit called');
+    console.log('[NEW-ORDER] Form valid:', this.orderForm.valid);
+    console.log('[NEW-ORDER] Location confirmed:', this.locationConfirmed);
+    console.log('[NEW-ORDER] Selected files:', this.selectedFiles.length);
     // Clear previous errors
     this.errorMessage = '';
     this.locationError = '';
@@ -685,8 +559,6 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
     const orderData = {
       address: formValue.address,
       location: this.selectedLocation,
-      latitude: this.selectedLocation?.lat || null,
-      longitude: this.selectedLocation?.lng || null,
       reportType: selectedReportType,
       addons: addonsArray,
       // Structure category info
@@ -704,6 +576,9 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
     };
 
     sessionStorage.setItem('orderData', JSON.stringify(orderData));
+    console.log('[NEW-ORDER] Files to transfer:', this.selectedFiles.length, this.selectedFiles);
+    this.fileTransferService.setFiles(this.selectedFiles);
+    console.log('[NEW-ORDER] Files in service after set:', this.fileTransferService.getFiles().length);
     this.router.navigate(['/dashboard/customer/order-review']);
   }
 
@@ -779,10 +654,10 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
     const projectName = addressParts[0] || 'Rooftop Project';
 
     // Add to cart
-    this.cartService.addToCart({
+    const cartItemId = this.cartService.addToCart({
       projectName: projectName,
       projectAddress: this.selectedLocation!.address,
-      location: { lat: this.selectedLocation!.lat, lng: this.selectedLocation!.lng, address: this.selectedLocation!.address },
+      location: { lat: this.selectedLocation!.lat, lng: this.selectedLocation!.lng },
       reportType: {
         id: selectedReportType.id,
         name: selectedReportType.name,
@@ -798,6 +673,11 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
       addonsTotal: this.getAddonsTotal(),
       totalPrice: this.getTotalPrice()
     });
+
+    // Store files for this cart item
+    if (this.selectedFiles.length > 0) {
+      this.fileTransferService.addCartItemFiles(cartItemId, this.selectedFiles);
+    }
 
     // Show success message
     this.successMessage = 'Item added to cart successfully!';
@@ -822,15 +702,22 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
     this.fileError = '';
 
     // Clear marker from map
-    if (this.map && this.marker && this.map.hasLayer(this.marker)) {
-      this.map.removeLayer(this.marker);
+    if (this.marker) {
+      this.marker.setMap(null);
+      this.marker = null;
     }
 
-    // Reset form fields
+    // Reset all form fields
     this.orderForm.patchValue({
       address: '',
+      reportType: '',
+      structureType: '',
+      primaryPitch: '',
+      secondaryPitch: '',
       specialInstructions: ''
     });
+    this.orderForm.markAsUntouched();
+    this.orderForm.markAsPristine();
 
     // Clear selected addons
     this.selectedAddons.clear();

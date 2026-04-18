@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { CartService, CartItem } from '../../../../core/services/cart.service';
+import { FileTransferService } from '../../../../core/services/file-transfer.service';
 import { Observable } from 'rxjs';
 
 @Component({
@@ -14,6 +15,7 @@ import { Observable } from 'rxjs';
 export class Cart implements OnInit {
   private router = inject(Router);
   private cartService = inject(CartService);
+  private fileTransferService = inject(FileTransferService);
 
   cartItems$: Observable<CartItem[]> = this.cartService.cartItems$;
 
@@ -29,10 +31,12 @@ export class Cart implements OnInit {
 
   removeItem(itemId: string): void {
     this.cartService.removeFromCart(itemId);
+    this.fileTransferService.removeCartItemFiles(itemId);
   }
 
   clearCart(): void {
     this.cartService.clearCart();
+    this.fileTransferService.clear();
   }
 
   proceedToCheckout(): void {

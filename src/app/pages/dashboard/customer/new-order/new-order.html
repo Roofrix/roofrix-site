@@ -71,40 +71,15 @@
                 formControlName="address"
                 placeholder="Search for a location"
                 [class.error]="hasError('address', 'required')"
-                (input)="searchAddress()"
-                (paste)="onAddressPaste($event)"
                 (keydown.enter)="$event.preventDefault()"
-                (blur)="hideSearchResults()"
-                autocomplete="off"
               />
-              <div class="search-spinner" *ngIf="searchingAddress">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="32">
-                    <animate attributeName="stroke-dashoffset" dur="0.8s" repeatCount="indefinite" values="32;0"/>
-                  </circle>
-                </svg>
-              </div>
             </div><!-- end input-wrapper -->
-            <!-- Search Results Dropdown -->
-            <div class="search-results" *ngIf="showSearchResults && searchResults.length > 0">
-              <div
-                class="search-result-item"
-                *ngFor="let result of searchResults"
-                (mousedown)="selectSearchResult(result)"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                  <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-                <span>{{ result.display_name }}</span>
-              </div>
-            </div>
             <span class="error-text" *ngIf="getErrorMessage('address')">
               {{ getErrorMessage('address') }}
             </span>
           </div>
 
-          <!-- Leaflet Map Container -->
+          <!-- Google Map Container -->
           <div class="map-container">
             <div #mapElement class="google-map"></div>
           </div>
@@ -157,7 +132,10 @@
               />
               <div class="option-content">
                 <span class="option-name">{{ type.name }}</span>
-                <span class="option-desc">({{ type.description }})</span>
+                <span class="info-icon-wrapper">
+                  <span class="info-badge">i</span>
+                  <span class="info-tooltip">{{ type.description }}</span>
+                </span>
               </div>
               <span class="option-price">${{ type.price }}</span>
             </label>
@@ -219,15 +197,10 @@
         </div>
         <div class="accordion-content" *ngIf="expandedSections['structureType']">
           <div class="structure-type-options">
-            <label class="structure-type-option" [class.selected]="orderForm.get('structureType')?.value === 'main'">
-              <input type="radio" formControlName="structureType" value="main" />
+            <label class="structure-type-option" *ngFor="let st of structureTypes" [class.selected]="orderForm.get('structureType')?.value === st.id">
+              <input type="radio" formControlName="structureType" [value]="st.id" />
               <span class="radio-circle"></span>
-              <span class="option-label">Main</span>
-            </label>
-            <label class="structure-type-option" [class.selected]="orderForm.get('structureType')?.value === 'main_and_garage'">
-              <input type="radio" formControlName="structureType" value="main_and_garage" />
-              <span class="radio-circle"></span>
-              <span class="option-label">Main and Garage</span>
+              <span class="option-label">{{ st.name }}</span>
             </label>
           </div>
           <span class="error-text" *ngIf="structureTypeError">{{ structureTypeError }}</span>
@@ -351,7 +324,7 @@
             <span class="total-label">Total:</span>
             <span class="total-amount">${{ getTotalPrice() }}</span>
           </div>
-          <button type="submit" class="btn-checkout" [disabled]="loading">
+          <button type="button" class="btn-checkout" [disabled]="loading" (click)="onSubmit()">
             <span *ngIf="!loading">Proceed to Checkout</span>
             <span *ngIf="loading">Processing...</span>
           </button>

@@ -21,7 +21,8 @@ import {
   QuerySnapshot,
   DocumentSnapshot,
   arrayUnion,
-  arrayRemove
+  arrayRemove,
+  runTransaction
 } from 'firebase/firestore';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -235,6 +236,22 @@ export class FirestoreService {
       arrayUnion,
       arrayRemove
     };
+  }
+
+  /**
+   * Atomically increment a counter and return the new value.
+   * Creates the document/field if it doesn't exist.
+   */
+  async incrementCounter(collectionPath: string, documentId: string, field: string): Promise<number> {
+    const docRef = doc(this.db, collectionPath, documentId);
+    const newValue = await runTransaction(this.db, async (transaction) => {
+      const snapshot = await transaction.get(docRef);
+      const current = snapshot.exists() ? (snapshot.data()?.[field] || 0) : 0;
+      const next = current + 1;
+      transaction.set(docRef, { [field]: next }, { merge: true });
+      return next;
+    });
+    return newValue;
   }
 
   /**

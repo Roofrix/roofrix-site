@@ -49,6 +49,17 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // System config (pricing, etc.)
+    match /system/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // System counters (order number sequence)
+    match /system/counters {
+      allow read, write: if isSignedIn();
+    }
+
     // Orders collection
     match /orders/{orderId} {
       // Customers can read their own orders

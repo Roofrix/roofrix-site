@@ -5,22 +5,20 @@ import { Observable } from 'rxjs';
 export interface UserProfile {
   id: string;
   email: string;
-  role: 'admin' | 'customer' | 'designer';
-  displayName?: string;
+  role: 'admin' | 'customer';
+  name?: string;
   phoneNumber?: string;
   company?: string;
-  photoURL?: string;
   createdAt: any;
   updatedAt: any;
   lastLoginAt: any;
   isActive: boolean;
-  assignedOrders?: string[]; // For designers
 }
 
 export interface CreateUserProfileData {
   email: string;
-  role: 'admin' | 'customer' | 'designer';
-  displayName?: string;
+  role: 'admin' | 'customer';
+  name?: string;
   phoneNumber?: string;
   company?: string;
 }
@@ -46,15 +44,13 @@ export class UserService {
       const userProfile: Omit<UserProfile, 'id'> = {
         email: data.email,
         role: data.role,
-        displayName: data.displayName || '',
+        name: data.name || '',
         phoneNumber: data.phoneNumber || '',
         company: data.company || '',
-        photoURL: '',
         createdAt: timestamp,
         updatedAt: timestamp,
         lastLoginAt: timestamp,
         isActive: true,
-        ...(data.role === 'designer' && { assignedOrders: [] })
       };
 
       await this.firestoreService.setDocument<Omit<UserProfile, 'id'>>(
@@ -148,7 +144,7 @@ export class UserService {
   /**
    * Get users by role
    */
-  async getUsersByRole(role: 'admin' | 'customer' | 'designer'): Promise<UserProfile[]> {
+  async getUsersByRole(role: 'admin' | 'customer'): Promise<UserProfile[]> {
     try {
       const { where } = this.firestoreService.getQueryHelpers();
       return await this.firestoreService.getDocuments<UserProfile>(
@@ -193,58 +189,4 @@ export class UserService {
     }
   }
 
-  /**
-   * Assign order to designer
-   */
-  async assignOrderToDesigner(designerUid: string, orderId: string): Promise<void> {
-    try {
-      const designer = await this.getUserProfile(designerUid);
-
-      if (!designer) {
-        throw new Error('Designer not found');
-      }
-
-      if (designer.role !== 'designer') {
-        throw new Error('User is not a designer');
-      }
-
-      const currentOrders = designer.assignedOrders || [];
-
-      if (!currentOrders.includes(orderId)) {
-        await this.firestoreService.updateDocument(
-          this.USERS_COLLECTION,
-          designerUid,
-          { assignedOrders: [...currentOrders, orderId] }
-        );
-      }
-    } catch (error) {
-      console.error('Error assigning order to designer:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove order from designer
-   */
-  async removeOrderFromDesigner(designerUid: string, orderId: string): Promise<void> {
-    try {
-      const designer = await this.getUserProfile(designerUid);
-
-      if (!designer) {
-        throw new Error('Designer not found');
-      }
-
-      const currentOrders = designer.assignedOrders || [];
-      const updatedOrders = currentOrders.filter(id => id !== orderId);
-
-      await this.firestoreService.updateDocument(
-        this.USERS_COLLECTION,
-        designerUid,
-        { assignedOrders: updatedOrders }
-      );
-    } catch (error) {
-      console.error('Error removing order from designer:', error);
-      throw error;
-    }
-  }
 }

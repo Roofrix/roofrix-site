@@ -1,10 +1,12 @@
 import { Component, inject, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { OrderService, CreateOrderData } from '../../../../core/services/order.service';
+import { OrderService, CreateOrderData, OrderItem } from '../../../../core/services/order.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { CartService, CartItem } from '../../../../core/services/cart.service';
 import { firstValueFrom } from 'rxjs';
+import { StorageService } from '../../../../core/services/storage.service';
+import { FileTransferService } from '../../../../core/services/file-transfer.service';
 
 @Component({
   selector: 'app-order-review',
@@ -21,6 +23,8 @@ export class OrderReview implements OnInit {
   private orderService = inject(OrderService);
   private authService = inject(AuthService);
   private cartService = inject(CartService);
+  private storageService = inject(StorageService);
+  private fileTransferService = inject(FileTransferService);
 
   orderData: any = null;
   cartItems: CartItem[] = [];
@@ -30,6 +34,8 @@ export class OrderReview implements OnInit {
   orderNumber = '';
   orderId = '';
   loading = false;
+  uploadingFiles = false;
+  uploadProgress = '';
   errorMessage = '';
 
   ngOnInit(): void {
@@ -97,18 +103,15 @@ export class OrderReview implements OnInit {
   }
 
   private async createSingleOrder(user: any): Promise<void> {
-    // Prepare order data with latitude, longitude, and structure category
-    const orderData: CreateOrderData = {
-      customerId: user.uid!,
-      customerEmail: user.email || '',
-      customerName: user.displayName || user.email || 'Customer',
-      projectAddress: this.orderData.address,
-      latitude: this.orderData.latitude || null,
-      longitude: this.orderData.longitude || null,
-      location: this.orderData.location || null,
+    // Build single item from order data
+    const address = this.orderData.location?.address || this.orderData.address;
+    const addressParts = address.split(',');
+    const item: OrderItem = {
+      projectName: addressParts[0] || 'Rooftop Project',
+      projectAddress: address,
+      location: this.orderData.location ? { lat: this.orderData.location.lat, lng: this.orderData.location.lng } : { lat: 0, lng: 0 },
       reportType: this.orderData.reportType,
       addons: this.orderData.addons || [],
-      // Structure category from menu selection
       structureCategory: this.orderData.structureCategory || 'basic',
       structureCategoryName: this.orderData.structureCategoryName || 'Basic Structure',
       structureCategorySqRange: this.orderData.structureCategorySqRange || '< 30 SQs',
@@ -118,7 +121,15 @@ export class OrderReview implements OnInit {
       basePrice: this.orderData.basePrice,
       addonsTotal: this.orderData.addonsTotal,
       totalPrice: this.orderData.totalPrice,
-      priority: 'medium'
+    };
+
+    const orderData: CreateOrderData = {
+      customerId: user.uid!,
+      customerEmail: user.email || '',
+      customerName: user.displayName || user.email || 'Customer',
+      totalPrice: this.orderData.totalPrice,
+      priority: 'medium',
+      items: [item]
     };
 
     // Save to Firestore and get the order ID
@@ -128,15 +139,43 @@ export class OrderReview implements OnInit {
     this.orderId = createdOrderId;
 
     // Get the generated order number from the service
-    this.orderNumber = 'ORD-' + createdOrderId.slice(-8).toUpperCase();
+    const createdOrder = await this.orderService.getOrder(createdOrderId);
+    this.orderNumber = createdOrder?.orderNumber || createdOrderId;
+
+    // Upload files to Firebase Storage if any
+    const files = this.fileTransferService.getFiles();
+    console.log('[ORDER-REVIEW] Files from transfer service:', files.length, files);
+    if (files.length > 0) {
+      this.ngZone.run(() => {
+        this.uploadingFiles = true;
+        this.uploadProgress = `Uploading ${files.length} file(s)...`;
+        this.cdr.detectChanges();
+      });
+
+      try {
+        const downloadURLs = await this.storageService.uploadMultipleFiles(
+          files, 'site-images', user.uid!, createdOrderId
+        );
+        item.siteImages = downloadURLs.map((url, i) => ({ url, name: files[i].name }));
+        await this.orderService.updateOrder(createdOrderId, { items: [item] });
+      } catch (uploadError) {
+        console.error('[ORDER-REVIEW] File upload failed:', uploadError);
+        // Order is created, just log the upload error — don't block confirmation
+      }
+
+    }
+
+    // Clear all session data and files
+    this.fileTransferService.clear();
+    sessionStorage.removeItem('selectedProduct');
+    sessionStorage.removeItem('orderData');
+    sessionStorage.removeItem('selectedStructureType');
 
     this.ngZone.run(() => {
       this.loading = false;
+      this.uploadingFiles = false;
+      this.uploadProgress = '';
       this.orderConfirmed = true;
-
-      // Clear session storage
-      sessionStorage.removeItem('selectedProduct');
-      sessionStorage.removeItem('orderData');
 
       // Force change detection
       this.cdr.detectChanges();
@@ -144,12 +183,8 @@ export class OrderReview implements OnInit {
   }
 
   private async createCartOrder(user: any): Promise<void> {
-    // For cart checkout, we create a single order with multiple items
-    // The first item's address becomes the primary project address
-    const firstItem = this.cartItems[0];
-
     // Build items array for the order
-    const orderItems = this.cartItems.map(item => ({
+    const orderItems: OrderItem[] = this.cartItems.map(item => ({
       projectName: item.projectName,
       projectAddress: item.projectAddress,
       location: item.location,
@@ -164,31 +199,12 @@ export class OrderReview implements OnInit {
       totalPrice: item.totalPrice
     }));
 
-    // Calculate totals from all items
-    const totalBasePrice = this.cartItems.reduce((sum, item) => sum + item.basePrice, 0);
-    const totalAddonsPrice = this.cartItems.reduce((sum, item) => sum + item.addonsTotal, 0);
-
     const orderData: CreateOrderData = {
       customerId: user.uid!,
       customerEmail: user.email || '',
       customerName: user.displayName || user.email || 'Customer',
-      projectAddress: `${this.cartItems.length} Project${this.cartItems.length > 1 ? 's' : ''} - ${firstItem.projectName}`,
-      latitude: firstItem.location.lat,
-      longitude: firstItem.location.lng,
-      location: firstItem.location,
-      reportType: firstItem.reportType,
-      addons: firstItem.selectedAddons || [],
-      structureCategory: firstItem.structureCategory,
-      structureCategoryName: firstItem.structureCategoryName,
-      structureCategorySqRange: firstItem.structureCategorySqRange,
-      primaryPitch: '',
-      secondaryPitch: '',
-      specialInstructions: `Order contains ${this.cartItems.length} item(s)`,
-      basePrice: totalBasePrice,
-      addonsTotal: totalAddonsPrice,
       totalPrice: this.cartTotal,
       priority: 'medium',
-      // Add items array for multi-item orders
       items: orderItems
     };
 
@@ -196,16 +212,59 @@ export class OrderReview implements OnInit {
     const createdOrderId = await this.orderService.createOrder(orderData, user.uid!);
 
     this.orderId = createdOrderId;
-    this.orderNumber = 'ORD-' + createdOrderId.slice(-8).toUpperCase();
+    const createdOrder = await this.orderService.getOrder(createdOrderId);
+    this.orderNumber = createdOrder?.orderNumber || createdOrderId;
+
+    // Upload files per cart item
+    const hasFiles = this.fileTransferService.hasFiles();
+
+    if (hasFiles) {
+      this.ngZone.run(() => {
+        this.uploadingFiles = true;
+        this.cdr.detectChanges();
+      });
+
+      for (let i = 0; i < this.cartItems.length; i++) {
+        const cartItem = this.cartItems[i];
+        const itemFiles = this.fileTransferService.getCartItemFiles(cartItem.id);
+
+        if (itemFiles.length > 0) {
+          this.ngZone.run(() => {
+            this.uploadProgress = `Uploading files for item ${i + 1}/${this.cartItems.length}...`;
+            this.cdr.detectChanges();
+          });
+
+          try {
+            const urls = await this.storageService.uploadMultipleFiles(
+              itemFiles, 'site-images', user.uid!, createdOrderId
+            );
+            orderItems[i].siteImages = urls.map((url, j) => ({ url, name: itemFiles[j].name }));
+          } catch (uploadError) {
+            console.error(`[ORDER-REVIEW] File upload failed for item ${i + 1}:`, uploadError);
+          }
+        }
+      }
+
+      try {
+        await this.orderService.updateOrder(createdOrderId, { items: orderItems });
+      } catch (err) {
+        console.error('[ORDER-REVIEW] Failed to update order with file URLs:', err);
+      }
+
+    }
+
+    // Clear all session data and files
+    this.fileTransferService.clear();
+    this.cartService.clearCart();
+    sessionStorage.removeItem('cartCheckout');
+    sessionStorage.removeItem('orderData');
+    sessionStorage.removeItem('selectedStructureType');
 
     this.ngZone.run(() => {
       this.loading = false;
+      this.uploadingFiles = false;
+      this.uploadProgress = '';
       this.orderConfirmed = true;
-
-      // Clear cart and session storage
-      this.cartService.clearCart();
-      sessionStorage.removeItem('cartCheckout');
-
       this.cdr.detectChanges();
     });
   }

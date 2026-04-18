@@ -5,7 +5,7 @@ export interface CartItem {
   id: string;
   projectName: string;
   projectAddress: string;
-  location: { lat: number; lng: number; address: string };
+  location: { lat: number; lng: number };
   reportType: { id: string; name: string; description: string; price: number };
   selectedAddons: { id: string; name: string; price: number }[];
   structureCategory: string;
@@ -52,7 +52,7 @@ export class CartService {
     this.cartCountSubject.next(this.cartItems.length);
   }
 
-  addToCart(item: Omit<CartItem, 'id' | 'addedAt'>): void {
+  addToCart(item: Omit<CartItem, 'id' | 'addedAt'>): string {
     const cartItem: CartItem = {
       ...item,
       id: this.generateId(),
@@ -60,6 +60,7 @@ export class CartService {
     };
     this.cartItems.push(cartItem);
     this.saveToStorage();
+    return cartItem.id;
   }
 
   removeFromCart(itemId: string): void {

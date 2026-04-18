@@ -110,6 +110,10 @@ export class CustomerOrders implements OnInit, OnDestroy {
     }
   }
 
+  getImageCount(order: Order): number {
+    return (order.items || []).reduce((sum, item) => sum + (item.siteImages?.length || 0), 0);
+  }
+
   viewOrderDetails(orderId: string): void {
     this.router.navigate(['/dashboard/customer/orders', orderId]);
   }

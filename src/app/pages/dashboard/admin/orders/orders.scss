@@ -815,6 +815,7 @@
 
 // Item Navigation for Multi-Item Orders
 .item-navigation {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -877,6 +878,7 @@
 
 // Order Summary Bar
 .order-summary-bar {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1618,6 +1620,75 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+}
+
+// Site Images Gallery
+.site-images-section {
+  margin-top: 0.75rem;
+
+  .detail-label {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+}
+
+.site-images-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  .gallery-item {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    overflow: hidden;
+    text-decoration: none;
+    border: 1px solid #e2e8f0;
+    transition: transform 0.2s, box-shadow 0.2s;
+
+    &:hover {
+      transform: scale(1.03);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  .image-item {
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .pdf-item, .file-item {
+    flex-direction: column;
+    gap: 0.25rem;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.65rem;
+
+    svg {
+      flex-shrink: 0;
+      stroke: #64748b;
+    }
+
+    span {
+      max-width: 70px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: center;
+    }
+  }
+
+  .pdf-item {
+    svg {
+      stroke: #dc2626;
     }
   }
 }

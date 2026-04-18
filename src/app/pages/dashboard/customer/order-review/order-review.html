@@ -34,13 +34,13 @@
       <div class="order-details">
         <div class="detail-section">
           <h3>Property Address</h3>
-          <p>{{ orderData.address }}</p>
-          <p class="coordinates" *ngIf="orderData.latitude && orderData.longitude">
+          <p>{{ orderData.location?.address || orderData.address }}</p>
+          <p class="coordinates" *ngIf="orderData.location">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
               <circle cx="12" cy="10" r="3"></circle>
             </svg>
-            Lat: {{ orderData.latitude.toFixed(6) }}, Lng: {{ orderData.longitude.toFixed(6) }}
+            Lat: {{ orderData.location.lat.toFixed(6) }}, Lng: {{ orderData.location.lng.toFixed(6) }}
           </p>
         </div>
 
@@ -93,9 +93,10 @@
         <span>Payment integration coming soon. Your order will be processed for review.</span>
       </div>
 
-      <button class="btn-confirm" (click)="confirmOrder()" [disabled]="loading">
-        <span *ngIf="!loading">Confirm Order</span>
-        <span *ngIf="loading">Processing...</span>
+      <button class="btn-confirm" (click)="confirmOrder()" [disabled]="loading || uploadingFiles">
+        <span *ngIf="!loading && !uploadingFiles">Confirm Order</span>
+        <span *ngIf="loading && !uploadingFiles">Processing...</span>
+        <span *ngIf="uploadingFiles">{{ uploadProgress }}</span>
       </button>
     </div>
   </ng-container>

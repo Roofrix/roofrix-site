@@ -17,6 +17,7 @@ import { environment } from '../../../environments/environment';
 import { User } from '../models/user.interface';
 import { getFirebaseErrorMessage } from '../utils/validators';
 import { UserService } from './user.service';
+import { PricingService } from './pricing.service';
 
 @Injectable({
   providedIn: 'root'
@@ -24,6 +25,7 @@ import { UserService } from './user.service';
 export class AuthService {
   private router = inject(Router);
   private userService = inject(UserService);
+  private pricingService = inject(PricingService);
   private firebaseApp: FirebaseApp;
   private auth: Auth;
 
@@ -58,11 +60,11 @@ export class AuthService {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
           emailVerified: firebaseUser.emailVerified
         };
         this.currentUserSubject.next(user);
         this.isAuthenticatedSubject.next(true);
+        this.pricingService.loadPricing();
       } else {
         this.currentUserSubject.next(null);
         this.isAuthenticatedSubject.next(false);
@@ -85,7 +87,7 @@ export class AuthService {
           await this.userService.createUserProfile(credential.user.uid, {
             email: credential.user.email || email.trim(),
             role: 'customer', // Default role for new signups
-            displayName: credential.user.displayName || ''
+            name: credential.user.displayName || ''
           });
 
           this.loadingSubject.next(false);

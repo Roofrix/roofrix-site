@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 import { OrderService, Order, OrderStatus } from '../../../../core/services/order.service';
-import { UserService, UserProfile } from '../../../../core/services/user.service';
+import { UserService } from '../../../../core/services/user.service';
 import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
@@ -25,7 +25,6 @@ export class AdminOrders implements OnInit, OnDestroy {
 
   orders: Order[] = [];
   filteredOrders: Order[] = [];
-  designers: UserProfile[] = [];
   loading = true;
   error = '';
 
@@ -40,10 +39,6 @@ export class AdminOrders implements OnInit, OnDestroy {
   statusNotes = '';
   updatingStatus = false;
 
-  // Designer assignment modal
-  showDesignerModal = false;
-  selectedDesignerId = '';
-  assigningDesigner = false;
 
   // Job Details modal
   showDetailsModal = false;
@@ -62,7 +57,6 @@ export class AdminOrders implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadOrders();
-    this.loadDesigners();
   }
 
   ngOnDestroy(): void {
@@ -98,13 +92,6 @@ export class AdminOrders implements OnInit, OnDestroy {
     });
   }
 
-  async loadDesigners(): Promise<void> {
-    try {
-      this.designers = await this.userService.getUsersByRole('designer');
-    } catch (err) {
-      console.error('Error loading designers:', err);
-    }
-  }
 
   filterOrders(): void {
     let filtered = [...this.orders];
@@ -117,7 +104,7 @@ export class AdminOrders implements OnInit, OnDestroy {
         order.customerName.toLowerCase().includes(query) ||
         order.customerEmail.toLowerCase().includes(query) ||
         (order.projectName || '').toLowerCase().includes(query) ||
-        order.projectAddress.toLowerCase().includes(query)
+        (order.items || []).some(item => item.projectAddress.toLowerCase().includes(query))
       );
     }
 
@@ -164,7 +151,6 @@ export class AdminOrders implements OnInit, OnDestroy {
         this.newStatus,
         user.uid,
         user.email || 'admin',
-        'admin',
         this.statusNotes || undefined
       );
 
@@ -178,17 +164,6 @@ export class AdminOrders implements OnInit, OnDestroy {
     }
   }
 
-  openDesignerModal(order: Order): void {
-    this.selectedOrder = order;
-    this.selectedDesignerId = order.assignedDesignerId || '';
-    this.showDesignerModal = true;
-  }
-
-  closeDesignerModal(): void {
-    this.showDesignerModal = false;
-    this.selectedOrder = null;
-    this.selectedDesignerId = '';
-  }
 
   openDetailsModal(order: Order): void {
     this.detailsOrder = order;
@@ -298,42 +273,24 @@ export class AdminOrders implements OnInit, OnDestroy {
     }
   }
 
-  getMapUrl(address: string): SafeResourceUrl {
-    const encodedAddress = encodeURIComponent(address);
-    const url = `https://www.google.com/maps?q=${encodedAddress}&output=embed`;
+  getMapUrl(address: string, location?: { lat: number; lng: number } | null): SafeResourceUrl {
+    let url: string;
+    if (location?.lat && location?.lng) {
+      url = `https://www.google.com/maps?q=${location.lat},${location.lng}&z=18&output=embed`;
+    } else {
+      const encodedAddress = encodeURIComponent(address);
+      url = `https://www.google.com/maps?q=${encodedAddress}&output=embed`;
+    }
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
-  async assignDesigner(): Promise<void> {
-    if (!this.selectedOrder || !this.selectedDesignerId) return;
-
-    try {
-      this.assigningDesigner = true;
-
-      const designer = this.designers.find(d => d.id === this.selectedDesignerId);
-      if (!designer) return;
-
-      const user = this.authService.getCurrentUser();
-      await this.orderService.assignDesigner(
-        this.selectedOrder.id,
-        designer.id,
-        designer.email,
-        user?.uid || '',
-        user?.email || 'admin'
-      );
-
-      // Update designer's assigned orders
-      await this.userService.assignOrderToDesigner(designer.id, this.selectedOrder.id);
-
-      // Orders will auto-update via real-time listener
-      this.closeDesignerModal();
-    } catch (err) {
-      console.error('Error assigning designer:', err);
-      alert('Failed to assign designer');
-    } finally {
-      this.assigningDesigner = false;
-    }
+  getFileType(name: string): 'image' | 'pdf' | 'other' {
+    const lower = name.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'pdf';
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp')) return 'image';
+    return 'other';
   }
+
 
   getStatusClass(status: string): string {
     const statusClasses: { [key: string]: string } = {
@@ -379,9 +336,11 @@ export class AdminOrders implements OnInit, OnDestroy {
 
   // Priority methods
   isRushOrder(order: Order): boolean {
-    return order.addons?.some(addon =>
-      addon.name.toLowerCase().includes('rush') || addon.id?.includes('rush')
-    ) || false;
+    return (order.items || []).some(item =>
+      item.addons?.some(addon =>
+        addon.name.toLowerCase().includes('rush') || addon.id?.includes('rush')
+      )
+    );
   }
 
   getPriorityLabel(order: Order): string {
