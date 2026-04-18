@@ -13,8 +13,7 @@ import {
   UploadTaskSnapshot,
   UploadTask
 } from 'firebase/storage';
-import { initializeApp } from 'firebase/app';
-import { environment } from '../../../environments/environment';
+import { getApp } from 'firebase/app';
 import { Observable } from 'rxjs';
 
 export interface UploadProgress {
@@ -35,8 +34,8 @@ export class StorageService {
   private storage: FirebaseStorage;
 
   constructor() {
-    // Initialize Firebase app for storage if not already initialized
-    const app = initializeApp(environment.firebase, 'storage-app');
+    // Use the default Firebase app (shares auth state)
+    const app = getApp();
     this.storage = getStorage(app);
   }
 
@@ -66,8 +65,9 @@ export class StorageService {
 
     switch (folder) {
       case 'site-images':
+        if (!userId) throw new Error('userId is required for site-images');
         if (!orderId) throw new Error('orderId is required for site-images');
-        path = `orders/${orderId}/site-images/${fileName}`;
+        path = `${userId}/${orderId}/${fileName}`;
         break;
 
       case 'design-files':

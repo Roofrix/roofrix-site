@@ -14,7 +14,9 @@
       "Bash(ng build:*)",
       "Bash(firebase deploy:*)",
       "Bash(firebase hosting:sites:get:*)",
-      "Bash(nslookup:*)"
+      "Bash(nslookup:*)",
+      "Bash(ls:*)",
+      "Bash(node -e:*)"
     ]
   }
 }

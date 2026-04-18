@@ -51,8 +51,6 @@ export function roleGuard(allowedRoles: string[]): CanActivateFn {
 
             if (profile.role === 'admin') {
               router.navigate(['/dashboard/admin/orders']);
-            } else if (profile.role === 'designer') {
-              router.navigate(['/dashboard/designer/orders']);
             } else if (profile.role === 'customer') {
               router.navigate(['/dashboard/customer/orders']);
             } else {
@@ -78,11 +76,6 @@ export const adminGuard: CanActivateFn = roleGuard(['admin']);
 export const customerGuard: CanActivateFn = roleGuard(['customer']);
 
 /**
- * Designer-only guard
- */
-export const designerGuard: CanActivateFn = roleGuard(['designer']);
-
-/**
  * Customer or Admin guard
  */
 export const customerOrAdminGuard: CanActivateFn = roleGuard(['customer', 'admin']);
@@ -90,4 +83,4 @@ export const customerOrAdminGuard: CanActivateFn = roleGuard(['customer', 'admin
 /**
  * Any authenticated user with a valid role
  */
-export const dashboardGuard: CanActivateFn = roleGuard(['admin', 'customer', 'designer']);
+export const dashboardGuard: CanActivateFn = roleGuard(['admin', 'customer']);

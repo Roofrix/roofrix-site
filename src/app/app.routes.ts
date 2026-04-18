@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { PublicLayout } from './layouts/public-layout/public-layout';
 import { DashboardLayout } from './layouts/dashboard-layout/dashboard-layout';
 import { authGuard } from './core/guards/auth.guard';
-import { adminGuard, customerGuard, designerGuard } from './core/guards/role.guard';
+import { adminGuard, customerGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   // Public routes
