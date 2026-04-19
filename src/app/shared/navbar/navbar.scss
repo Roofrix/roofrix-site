@@ -532,6 +532,10 @@
             top: 50% !important;
             transform: translateY(-50%) !important;
             z-index: 10;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            width: 36px;
+            height: 36px;
         }
 
         .logo {
@@ -581,6 +585,8 @@
             gap: 6px;
             flex-shrink: 1;
             min-width: 0;
+            overflow: hidden;
+            max-width: calc(100% - 120px); // logo + hamburger space
 
             .admin-nav-links {
                 .admin-nav-link {
@@ -705,6 +711,8 @@
 
         .mobile-menu-toggle {
             right: 8px !important;
+            width: 32px;
+            height: 32px;
         }
 
         .logo {
