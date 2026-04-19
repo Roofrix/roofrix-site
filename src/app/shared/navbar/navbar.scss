@@ -13,7 +13,7 @@
     .logo {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 0px !important;
         text-decoration: none;
 
         .logo-icon {
@@ -24,6 +24,7 @@
         .logo-text {
             height: 24px;
             width: auto;
+            margin-left: -5px !important;
         }
     }
 
@@ -519,7 +520,6 @@
 // Mobile Navigation
 @media (max-width: 768px) {
     .navbar {
-        position: relative;
         padding: 0 16px;
         padding-right: 56px; // Space for hamburger menu
 

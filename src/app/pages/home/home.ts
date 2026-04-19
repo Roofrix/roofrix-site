@@ -1,24 +1,24 @@
-import { Component, OnInit, OnDestroy, inject, HostListener, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, HostListener, CUSTOM_ELEMENTS_SCHEMA, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { take } from 'rxjs';
+import Swiper from 'swiper';
+import { Navigation, Pagination, Autoplay } from 'swiper/modules';
 
 @Component({
   selector: 'app-home',
   standalone: true,
   imports: [CommonModule],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './home.html',
   styleUrl: './home.scss',
 })
-export class Home implements OnInit, OnDestroy {
+export class Home implements OnInit, OnDestroy, AfterViewInit {
   private router = inject(Router);
   private authService = inject(AuthService);
-  private ngZone = inject(NgZone);
-
-  currentSlide = 0;
-  totalSlides = 4;
-  private autoSlideInterval: any;
+  @ViewChild('swiperContainer') swiperContainer!: ElementRef;
+  private swiperInstance: Swiper | null = null;
 
   showOrderMenu = false;
 
@@ -49,44 +49,34 @@ export class Home implements OnInit, OnDestroy {
     }
   ];
 
-  ngOnInit(): void {
-    this.startAutoSlide();
+  ngOnInit(): void {}
+
+  ngAfterViewInit(): void {
+    this.initSwiper();
   }
 
   ngOnDestroy(): void {
-    this.stopAutoSlide();
+    this.swiperInstance?.destroy();
   }
 
-  startAutoSlide(): void {
-    this.autoSlideInterval = setInterval(() => {
-      this.ngZone.run(() => {
-        this.nextSlide();
-      });
-    }, 500);
-  }
-
-  stopAutoSlide(): void {
-    if (this.autoSlideInterval) {
-      clearInterval(this.autoSlideInterval);
-    }
-  }
-
-  goToSlide(index: number): void {
-    this.currentSlide = index;
-    this.stopAutoSlide();
-    this.startAutoSlide();
-  }
-
-  nextSlide(): void {
-    this.currentSlide = (this.currentSlide + 1) % this.totalSlides;
-  }
-
-  prevSlide(): void {
-    this.currentSlide = (this.currentSlide - 1 + this.totalSlides) % this.totalSlides;
-  }
-
-  isActiveSlide(index: number): boolean {
-    return this.currentSlide === index;
+  private initSwiper(): void {
+    this.swiperInstance = new Swiper(this.swiperContainer.nativeElement, {
+      modules: [Navigation, Pagination, Autoplay],
+      slidesPerView: 1,
+      loop: true,
+      autoplay: {
+        delay: 3000,
+        disableOnInteraction: false,
+      },
+      pagination: {
+        el: '.swiper-pagination',
+        clickable: true,
+      },
+      navigation: {
+        nextEl: '.swiper-button-next',
+        prevEl: '.swiper-button-prev',
+      },
+    });
   }
 
 

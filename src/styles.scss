@@ -51,6 +51,11 @@ button {
     }
 }
 
+/* Swiper navigation arrow size override */
+:root {
+    --swiper-navigation-size: 14px;
+}
+
 /* Hide scrollbar for horizontal overflow areas on mobile */
 .scrollable-x {
     overflow-x: auto;

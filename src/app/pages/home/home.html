@@ -139,40 +139,16 @@
       <h2>Sample Roof Report</h2>
     </div>
 
-    <!-- Slider Container -->
-    <div class="slider-container">
-      <!-- Navigation Arrows -->
-      <button class="slider-arrow prev" (click)="prevSlide()">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-      </button>
-
-      <div class="report-preview">
-        <img
-          *ngFor="let image of reportImages; let i = index"
-          [src]="image.src"
-          [alt]="image.alt"
-          class="report-image"
-          [class.active]="isActiveSlide(i)"
-        />
+    <!-- Swiper Slider -->
+    <div class="swiper" #swiperContainer>
+      <div class="swiper-wrapper">
+        <div class="swiper-slide" *ngFor="let image of reportImages">
+          <img [src]="image.src" [alt]="image.alt" class="report-image" />
+        </div>
       </div>
-
-      <button class="slider-arrow next" (click)="nextSlide()">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="9 18 15 12 9 6"></polyline>
-        </svg>
-      </button>
-    </div>
-
-    <!-- Dots Navigation -->
-    <div class="preview-dots">
-      <span
-        *ngFor="let image of reportImages; let i = index"
-        class="dot"
-        [class.active]="isActiveSlide(i)"
-        (click)="goToSlide(i)"
-      ></span>
+      <div class="swiper-button-prev"></div>
+      <div class="swiper-button-next"></div>
+      <div class="swiper-pagination"></div>
     </div>
   </div>
 </section>
