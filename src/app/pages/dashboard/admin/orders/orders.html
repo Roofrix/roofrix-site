@@ -266,11 +266,6 @@
           <!-- Left Side - Item Info -->
           <div class="details-left">
             <div class="detail-row">
-              <span class="detail-label">Insured:</span>
-              <span class="detail-value">{{ item.projectName }}</span>
-            </div>
-
-            <div class="detail-row">
               <span class="detail-label">Type:</span>
               <span class="detail-badge type-badge">{{ item.reportType?.name || 'ESX File' }}</span>
             </div>
@@ -297,11 +292,6 @@
               <span class="detail-value">
                 <span class="addon-tag" *ngFor="let addon of item.addons">{{ addon.name }}</span>
               </span>
-            </div>
-
-            <div class="detail-row">
-              <span class="detail-label">Item Total:</span>
-              <span class="detail-value price">${{ item.totalPrice.toFixed(2) }}</span>
             </div>
 
             <!-- Site Images -->

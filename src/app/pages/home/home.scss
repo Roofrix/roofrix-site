@@ -515,20 +515,13 @@
   object-fit: cover;
   border-radius: 20px;
   opacity: 0;
-  transform: translateX(100%);
-  transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+  transition: none;
   pointer-events: none;
 }
 
 .report .right .report-preview .report-image.active {
   opacity: 1;
-  transform: translateX(0);
   pointer-events: auto;
-}
-
-.report .right .report-preview .report-image.prev {
-  opacity: 0;
-  transform: translateX(-100%);
 }
 
 .report .right .preview-dots {
@@ -544,13 +537,11 @@
   border-radius: 50%;
   background: #cbd5e1;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.2s ease;
 }
 
 .report .right .preview-dots .dot.active {
   background: #3b82f6;
-  width: 32px;
-  border-radius: 6px;
 }
 
 .report .right .preview-dots .dot:hover:not(.active) {

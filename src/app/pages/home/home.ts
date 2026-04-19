@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, HostListener, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -14,9 +14,9 @@ import { take } from 'rxjs';
 export class Home implements OnInit, OnDestroy {
   private router = inject(Router);
   private authService = inject(AuthService);
+  private ngZone = inject(NgZone);
 
   currentSlide = 0;
-  previousSlide = -1;
   totalSlides = 4;
   private autoSlideInterval: any;
 
@@ -59,8 +59,10 @@ export class Home implements OnInit, OnDestroy {
 
   startAutoSlide(): void {
     this.autoSlideInterval = setInterval(() => {
-      this.nextSlide();
-    }, 4000);
+      this.ngZone.run(() => {
+        this.nextSlide();
+      });
+    }, 500);
   }
 
   stopAutoSlide(): void {
@@ -70,19 +72,16 @@ export class Home implements OnInit, OnDestroy {
   }
 
   goToSlide(index: number): void {
-    this.previousSlide = this.currentSlide;
     this.currentSlide = index;
     this.stopAutoSlide();
     this.startAutoSlide();
   }
 
   nextSlide(): void {
-    this.previousSlide = this.currentSlide;
     this.currentSlide = (this.currentSlide + 1) % this.totalSlides;
   }
 
   prevSlide(): void {
-    this.previousSlide = this.currentSlide;
     this.currentSlide = (this.currentSlide - 1 + this.totalSlides) % this.totalSlides;
   }
 
@@ -90,9 +89,6 @@ export class Home implements OnInit, OnDestroy {
     return this.currentSlide === index;
   }
 
-  isPrevSlide(index: number): boolean {
-    return this.previousSlide === index;
-  }
 
   scrollToHowItWorks(): void {
     const element = document.getElementById('how-it-works');

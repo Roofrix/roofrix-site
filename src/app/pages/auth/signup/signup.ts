@@ -29,6 +29,7 @@ export class SignUp implements OnInit {
   ngOnInit(): void {
     // Initialize form
     this.signUpForm = this.fb.group({
+      name: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8), passwordStrengthValidator()]],
       confirmPassword: ['', [Validators.required, passwordMatchValidator('password')]],
@@ -85,9 +86,9 @@ export class SignUp implements OnInit {
     this.loading = true;
     this.errorMessage = '';
 
-    const { email, password } = this.signUpForm.value;
+    const { name, email, password } = this.signUpForm.value;
 
-    this.authService.signUp(email, password).subscribe({
+    this.authService.signUp(email, password, name).subscribe({
       next: (result) => {
         if (result.success) {
           // Navigate to home page after successful signup
@@ -136,6 +137,12 @@ export class SignUp implements OnInit {
 
     if (!field || !field.touched) {
       return '';
+    }
+
+    if (fieldName === 'name') {
+      if (field.hasError('required')) {
+        return 'Full name is required';
+      }
     }
 
     if (fieldName === 'email') {

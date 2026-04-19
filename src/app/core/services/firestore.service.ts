@@ -26,7 +26,7 @@ import {
 } from 'firebase/firestore';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApp } from 'firebase/app';
 
 @Injectable({
   providedIn: 'root'
@@ -35,8 +35,13 @@ export class FirestoreService {
   private db: Firestore;
 
   constructor() {
-    // Initialize Firebase app if not already initialized
-    const app = initializeApp(environment.firebase, 'firestore-app');
+    // Use the default Firebase app (shared with auth)
+    let app;
+    try {
+      app = initializeApp(environment.firebase);
+    } catch {
+      app = getApp();
+    }
     this.db = getFirestore(app);
   }
 

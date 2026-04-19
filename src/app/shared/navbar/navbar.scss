@@ -577,9 +577,10 @@
         }
 
         .logged-in-section {
-            // margin-left: auto;
-                margin-left: 30px;
+            margin-left: auto;
             gap: 6px;
+            flex-shrink: 1;
+            min-width: 0;
 
             .admin-nav-links {
                 .admin-nav-link {

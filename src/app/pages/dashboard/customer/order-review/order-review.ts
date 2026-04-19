@@ -7,6 +7,7 @@ import { CartService, CartItem } from '../../../../core/services/cart.service';
 import { firstValueFrom } from 'rxjs';
 import { StorageService } from '../../../../core/services/storage.service';
 import { FileTransferService } from '../../../../core/services/file-transfer.service';
+import { UserService } from '../../../../core/services/user.service';
 
 @Component({
   selector: 'app-order-review',
@@ -25,6 +26,7 @@ export class OrderReview implements OnInit {
   private cartService = inject(CartService);
   private storageService = inject(StorageService);
   private fileTransferService = inject(FileTransferService);
+  private userService = inject(UserService);
 
   orderData: any = null;
   cartItems: CartItem[] = [];
@@ -123,10 +125,12 @@ export class OrderReview implements OnInit {
       totalPrice: this.orderData.totalPrice,
     };
 
+    const userProfile = await this.userService.getUserProfile(user.uid!);
+
     const orderData: CreateOrderData = {
       customerId: user.uid!,
       customerEmail: user.email || '',
-      customerName: user.displayName || user.email || 'Customer',
+      customerName: userProfile?.name || user.email || 'Customer',
       totalPrice: this.orderData.totalPrice,
       priority: 'medium',
       items: [item]
@@ -199,10 +203,12 @@ export class OrderReview implements OnInit {
       totalPrice: item.totalPrice
     }));
 
+    const userProfile = await this.userService.getUserProfile(user.uid!);
+
     const orderData: CreateOrderData = {
       customerId: user.uid!,
       customerEmail: user.email || '',
-      customerName: user.displayName || user.email || 'Customer',
+      customerName: userProfile?.name || user.email || 'Customer',
       totalPrice: this.cartTotal,
       priority: 'medium',
       items: orderItems

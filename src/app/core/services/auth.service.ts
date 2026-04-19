@@ -59,7 +59,6 @@ export class AuthService {
         const user: User = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
           emailVerified: firebaseUser.emailVerified
         };
         this.currentUserSubject.next(user);
@@ -77,7 +76,7 @@ export class AuthService {
    * Sign up a new user with email and password
    * Also creates a Firestore user profile with 'customer' role by default
    */
-  signUp(email: string, password: string): Observable<{ success: boolean; error?: string; uid?: string }> {
+  signUp(email: string, password: string, name: string): Observable<{ success: boolean; error?: string; uid?: string }> {
     this.loadingSubject.next(true);
 
     return from(createUserWithEmailAndPassword(this.auth, email.trim(), password)).pipe(
@@ -87,7 +86,7 @@ export class AuthService {
           await this.userService.createUserProfile(credential.user.uid, {
             email: credential.user.email || email.trim(),
             role: 'customer', // Default role for new signups
-            name: credential.user.displayName || ''
+            name: name.trim()
           });
 
           this.loadingSubject.next(false);

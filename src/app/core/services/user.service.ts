@@ -7,8 +7,6 @@ export interface UserProfile {
   email: string;
   role: 'admin' | 'customer';
   name?: string;
-  phoneNumber?: string;
-  company?: string;
   createdAt: any;
   updatedAt: any;
   lastLoginAt: any;
@@ -19,8 +17,6 @@ export interface CreateUserProfileData {
   email: string;
   role: 'admin' | 'customer';
   name?: string;
-  phoneNumber?: string;
-  company?: string;
 }
 
 @Injectable({
@@ -45,8 +41,6 @@ export class UserService {
         email: data.email,
         role: data.role,
         name: data.name || '',
-        phoneNumber: data.phoneNumber || '',
-        company: data.company || '',
         createdAt: timestamp,
         updatedAt: timestamp,
         lastLoginAt: timestamp,
