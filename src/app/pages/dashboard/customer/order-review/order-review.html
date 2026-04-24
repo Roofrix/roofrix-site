@@ -68,6 +68,17 @@
           </p>
         </div>
 
+        <div class="detail-section" *ngIf="orderData.structureType">
+          <h3>Structure Type</h3>
+          <p>{{ orderData.structureType === 'main_and_garage' ? 'Main and Garage' : 'Main' }}</p>
+        </div>
+
+        <div class="detail-section" *ngIf="orderData.primaryPitch || orderData.secondaryPitch">
+          <h3>Roof Pitch</h3>
+          <p *ngIf="orderData.primaryPitch">Primary: {{ orderData.primaryPitch }}</p>
+          <p *ngIf="orderData.secondaryPitch">Secondary: {{ orderData.secondaryPitch }}</p>
+        </div>
+
         <div class="summary-section">
           <div class="summary-line">
             <span>Subtotal</span>
@@ -147,6 +158,11 @@
               <span class="detail-tag addons" *ngIf="item.selectedAddons && item.selectedAddons.length > 0">
                 +{{ item.selectedAddons.length }} addon{{ item.selectedAddons.length > 1 ? 's' : '' }}
               </span>
+              <span class="detail-tag" *ngIf="item.structureType">
+                {{ item.structureType === 'main_and_garage' ? 'Main and Garage' : 'Main' }}
+              </span>
+              <span class="detail-tag" *ngIf="item.primaryPitch">Pitch: {{ item.primaryPitch }}</span>
+              <span class="detail-tag" *ngIf="item.secondaryPitch">Secondary: {{ item.secondaryPitch }}</span>
             </div>
           </div>
           <div class="item-price">${{ item.totalPrice.toFixed(2) }}</div>

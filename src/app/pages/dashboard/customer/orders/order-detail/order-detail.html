@@ -42,7 +42,7 @@
 
       <div class="priority-row" *ngIf="order.priority">
         <span class="priority-badge" [ngClass]="getPriorityClass(order.priority)">
-          {{ order.priority | titlecase }} Priority
+          {{ order.priority === 'high' ? 'Rush Order' : 'Standard Order' }}
         </span>
       </div>
     </div>
@@ -73,6 +73,8 @@
               +{{ item.addons.length }} addon{{ item.addons.length > 1 ? 's' : '' }}
             </span>
             <span class="detail-tag" *ngIf="item.primaryPitch">Pitch: {{ item.primaryPitch }}</span>
+            <span class="detail-tag" *ngIf="item.secondaryPitch">Secondary Pitch: {{ item.secondaryPitch }}</span>
+            <span class="detail-tag" *ngIf="item.structureType">{{ item.structureType === 'main_and_garage' ? 'Main and Garage' : 'Main' }}</span>
           </div>
           <p class="item-instructions" *ngIf="item.specialInstructions">{{ item.specialInstructions }}</p>
         </div>

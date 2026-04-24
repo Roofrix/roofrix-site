@@ -505,6 +505,11 @@
     }
 }
 
+// Mobile Sign Out (hidden on desktop)
+.mobile-signout {
+    display: none;
+}
+
 // Mobile Menu Toggle
 .mobile-menu-toggle {
     display: none;
@@ -572,6 +577,26 @@
 
                 &:last-child {
                     border-bottom: none;
+                }
+            }
+
+            .mobile-signout {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                width: 100%;
+                padding: 12px 0;
+                margin-top: 4px;
+                border: none;
+                border-top: 1px solid rgba(255, 255, 255, 0.15);
+                background: none;
+                color: #ff6b6b;
+                font-size: 15px;
+                cursor: pointer;
+                text-align: left;
+
+                svg {
+                    stroke: #ff6b6b;
                 }
             }
         }
@@ -674,29 +699,7 @@
             }
 
             .user-menu {
-                .user-button {
-                    padding: 6px 10px;
-                    gap: 6px;
-
-                    .user-avatar {
-                        width: 24px;
-                        height: 24px;
-                        font-size: 11px;
-                    }
-
-                    .user-email {
-                        display: none;
-                    }
-
-                    .dropdown-arrow {
-                        display: none;
-                    }
-                }
-
-                .user-dropdown {
-                    right: 0;
-                    min-width: 180px;
-                }
+                display: none;
             }
         }
     }

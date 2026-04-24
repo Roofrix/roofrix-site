@@ -70,6 +70,7 @@ export interface OrderItem {
   structureCategorySqRange: string;
   primaryPitch?: string;
   secondaryPitch?: string;
+  structureType?: string;
   specialInstructions: string;
   basePrice: number;
   addonsTotal: number;

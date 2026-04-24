@@ -11,6 +11,9 @@ export interface CartItem {
   structureCategory: string;
   structureCategoryName: string;
   structureCategorySqRange: string;
+  primaryPitch?: string;
+  secondaryPitch?: string;
+  structureType?: string;
   specialInstructions: string;
   basePrice: number;
   addonsTotal: number;

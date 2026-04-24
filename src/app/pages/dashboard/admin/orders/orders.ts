@@ -344,7 +344,7 @@ export class AdminOrders implements OnInit, OnDestroy {
   }
 
   getPriorityLabel(order: Order): string {
-    return this.isRushOrder(order) ? '2hr Rush' : 'Standard';
+    return this.isRushOrder(order) ? 'Rush Order' : 'Standard Order';
   }
 
   // Timer methods - countdown from order creation

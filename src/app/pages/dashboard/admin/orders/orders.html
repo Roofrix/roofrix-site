@@ -278,6 +278,20 @@
             </div>
 
             <div class="detail-row">
+              <span class="detail-label">Secondary Pitch:</span>
+              <span class="detail-badge pitch-badge" [ngClass]="item.secondaryPitch ? 'provided' : 'not-provided'">
+                {{ item.secondaryPitch || 'Not provided' }}
+              </span>
+            </div>
+
+            <div class="detail-row">
+              <span class="detail-label">Structure Type:</span>
+              <span class="detail-value">
+                {{ item.structureType === 'main_and_garage' ? 'Main and Garage' : (item.structureType === 'main' ? 'Main' : 'Not provided') }}
+              </span>
+            </div>
+
+            <div class="detail-row">
               <span class="detail-label">Category:</span>
               <span class="detail-value">{{ item.structureCategoryName }} ({{ item.structureCategorySqRange }})</span>
             </div>
