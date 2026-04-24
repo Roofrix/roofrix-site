@@ -67,7 +67,7 @@
                 <line x1="12" y1="8" x2="12.01" y2="8"></line>
               </svg>
               <span class="priority" [class.high]="order.priority === 'high'" [class.medium]="order.priority === 'medium'">
-                {{ order.priority | titlecase }} Priority
+                {{ order.priority === 'high' ? 'Rush Order' : 'Standard Order' }}
               </span>
             </div>
           </div>
