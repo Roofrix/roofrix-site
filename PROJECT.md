@@ -50,10 +50,10 @@ src/
         pricing.service.ts         # Hardcoded definitions + Firestore prices (loaded on login)
         firestore.service.ts       # Generic Firestore wrapper + atomic counter
     layouts/
-      public-layout/               # Wrapper for public pages
-      dashboard-layout/            # Wrapper for dashboard pages (own topbar)
+      public-layout/               # Wrapper for public pages (uses shared navbar + footer)
+      dashboard-layout/            # Wrapper for dashboard pages (uses shared navbar, no footer)
     shared/
-      navbar/                      # Public navbar (Home, Features, About, Contact)
+      navbar/                      # Shared navbar for all pages (nav links, order menu, cart, user menu, mobile sign out)
     pages/
       home/                        # Landing page with "Order Now" dropdown
       features/

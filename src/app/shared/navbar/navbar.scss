@@ -276,11 +276,20 @@
             border-radius: 10px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
             min-width: 260px;
-            z-index: 1000;
+            z-index: 1001;
             overflow: hidden;
 
             &.structure-menu {
                 min-width: 280px;
+            }
+
+            @media (max-width: 480px) {
+                position: fixed;
+                top: 68px;
+                left: 10px;
+                right: 10px;
+                min-width: auto;
+                width: calc(100% - 20px);
             }
         }
 
@@ -610,7 +619,7 @@
             gap: 6px;
             flex-shrink: 1;
             min-width: 0;
-            overflow: hidden;
+            overflow: visible;
             max-width: calc(100% - 120px); // logo + hamburger space
 
             .admin-nav-links {

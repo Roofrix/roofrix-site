@@ -2,216 +2,228 @@
   <!-- Single Item Review State -->
   <ng-container *ngIf="!orderConfirmed && orderData && !isCartCheckout">
     <div class="page-header">
-      <button class="btn-back" (click)="goBack()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-        Back to Order
-      </button>
       <h1>Order Review</h1>
       <p>Please review your order before confirming</p>
     </div>
 
-    <!-- Error Message -->
-    <div class="alert alert-error" *ngIf="errorMessage">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="12" y1="8" x2="12" y2="12"></line>
-        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-      </svg>
-      <span>{{ errorMessage }}</span>
-    </div>
-
-    <div class="review-card">
-      <div class="card-header">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>
-          <rect x="9" y="3" width="6" height="4" rx="1"></rect>
+    <div class="page-content">
+      <button class="btn-back" (click)="goBack()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
-        <h2>Order Summary</h2>
-      </div>
+        Back to Order
+      </button>
 
-      <div class="order-details">
-        <div class="detail-section">
-          <h3>Property Address</h3>
-          <p>{{ orderData.location?.address || orderData.address }}</p>
-          <p class="coordinates" *ngIf="orderData.location">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-            Lat: {{ orderData.location.lat.toFixed(6) }}, Lng: {{ orderData.location.lng.toFixed(6) }}
-          </p>
-        </div>
-
-        <div class="detail-section">
-          <h3>Report Type</h3>
-          <div class="detail-row">
-            <span>{{ orderData.reportType.name }}</span>
-            <span>${{ orderData.reportType.price.toFixed(2) }}</span>
-          </div>
-        </div>
-
-        <div class="detail-section" *ngIf="orderData.addons && orderData.addons.length > 0">
-          <h3>Addons</h3>
-          <div class="detail-row" *ngFor="let addon of orderData.addons">
-            <span>{{ addon.name }}</span>
-            <span>${{ addon.price.toFixed(2) }}</span>
-          </div>
-        </div>
-
-        <div class="detail-section" *ngIf="orderData.structureCategoryName">
-          <h3>Structure Category</h3>
-          <p class="structure-category-badge">
-            {{ orderData.structureCategoryName }}
-            <span class="sq-range" *ngIf="orderData.structureCategorySqRange">({{ orderData.structureCategorySqRange }})</span>
-          </p>
-        </div>
-
-        <div class="detail-section" *ngIf="orderData.structureType">
-          <h3>Structure Type</h3>
-          <p>{{ orderData.structureType === 'main_and_garage' ? 'Main and Garage' : 'Main' }}</p>
-        </div>
-
-        <div class="detail-section" *ngIf="orderData.primaryPitch || orderData.secondaryPitch">
-          <h3>Roof Pitch</h3>
-          <p *ngIf="orderData.primaryPitch">Primary: {{ orderData.primaryPitch }}</p>
-          <p *ngIf="orderData.secondaryPitch">Secondary: {{ orderData.secondaryPitch }}</p>
-        </div>
-
-        <div class="summary-section">
-          <div class="summary-line">
-            <span>Subtotal</span>
-            <span>${{ orderData.basePrice.toFixed(2) }}</span>
-          </div>
-          <div class="summary-line" *ngIf="orderData.addonsTotal > 0">
-            <span>Addons</span>
-            <span>${{ orderData.addonsTotal.toFixed(2) }}</span>
-          </div>
-          <div class="summary-line total">
-            <span>Total</span>
-            <span>${{ orderData.totalPrice.toFixed(2) }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="payment-note">
+      <!-- Error Message -->
+      <div class="alert alert-error" *ngIf="errorMessage">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="16" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
         </svg>
-        <span>Payment integration coming soon. Your order will be processed for review.</span>
+        <span>{{ errorMessage }}</span>
       </div>
 
-      <button class="btn-confirm" (click)="confirmOrder()" [disabled]="loading || uploadingFiles">
-        <span *ngIf="!loading && !uploadingFiles">Confirm Order</span>
-        <span *ngIf="loading && !uploadingFiles">Processing...</span>
-        <span *ngIf="uploadingFiles">{{ uploadProgress }}</span>
-      </button>
+      <div class="review-card">
+        <div class="card-header">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>
+            <rect x="9" y="3" width="6" height="4" rx="1"></rect>
+          </svg>
+          <h2>Order Summary</h2>
+        </div>
+
+        <div class="order-details">
+          <div class="detail-section">
+            <h3>Property Address</h3>
+            <p>{{ orderData.location?.address || orderData.address }}</p>
+            <p class="coordinates" *ngIf="orderData.location">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              Lat: {{ orderData.location.lat.toFixed(6) }}, Lng: {{ orderData.location.lng.toFixed(6) }}
+            </p>
+          </div>
+
+          <div class="detail-section">
+            <h3>Report Type</h3>
+            <div class="detail-row">
+              <span>{{ orderData.reportType.name }}</span>
+              <span>${{ orderData.reportType.price.toFixed(2) }}</span>
+            </div>
+          </div>
+
+          <div class="detail-section" *ngIf="orderData.addons && orderData.addons.length > 0">
+            <h3>Addons</h3>
+            <div class="detail-row" *ngFor="let addon of orderData.addons">
+              <span>{{ addon.name }}</span>
+              <span>${{ addon.price.toFixed(2) }}</span>
+            </div>
+          </div>
+
+          <div class="detail-section" *ngIf="orderData.structureCategoryName">
+            <h3>Structure Category</h3>
+            <p class="structure-category-badge">
+              {{ orderData.structureCategoryName }}
+              <span class="sq-range" *ngIf="orderData.structureCategorySqRange">({{ orderData.structureCategorySqRange }})</span>
+            </p>
+          </div>
+
+          <div class="detail-section" *ngIf="orderData.structureType">
+            <h3>Structure Type</h3>
+            <p>{{ orderData.structureType === 'main_and_garage' ? 'Main and Garage' : 'Main' }}</p>
+          </div>
+
+          <div class="detail-section" *ngIf="orderData.primaryPitch || orderData.secondaryPitch">
+            <h3>Roof Pitch</h3>
+            <p *ngIf="orderData.primaryPitch">Primary: {{ orderData.primaryPitch }}</p>
+            <p *ngIf="orderData.secondaryPitch">Secondary: {{ orderData.secondaryPitch }}</p>
+          </div>
+
+          <div class="summary-section">
+            <div class="summary-line">
+              <span>Subtotal</span>
+              <span>${{ orderData.basePrice.toFixed(2) }}</span>
+            </div>
+            <div class="summary-line" *ngIf="orderData.addonsTotal > 0">
+              <span>Addons</span>
+              <span>${{ orderData.addonsTotal.toFixed(2) }}</span>
+            </div>
+            <div class="summary-line total">
+              <span>Total</span>
+              <span>${{ orderData.totalPrice.toFixed(2) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="payment-note">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span>Payment integration coming soon. Your order will be processed for review.</span>
+        </div>
+
+        <button class="btn-confirm" (click)="confirmOrder()" [disabled]="loading || uploadingFiles">
+          <span *ngIf="!loading && !uploadingFiles">Confirm Order</span>
+          <span *ngIf="loading && !uploadingFiles">Processing...</span>
+          <span *ngIf="uploadingFiles">{{ uploadProgress }}</span>
+        </button>
+      </div>
     </div>
   </ng-container>
 
   <!-- Cart Checkout Review State -->
   <ng-container *ngIf="!orderConfirmed && isCartCheckout && cartItems.length > 0">
     <div class="page-header">
-      <button class="btn-back" (click)="goBack()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-        Back to Cart
-      </button>
       <h1>Order Review</h1>
       <p>Review your {{ cartItems.length }} item{{ cartItems.length > 1 ? 's' : '' }} before placing order</p>
     </div>
 
-    <!-- Error Message -->
-    <div class="alert alert-error" *ngIf="errorMessage">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="12" y1="8" x2="12" y2="12"></line>
-        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-      </svg>
-      <span>{{ errorMessage }}</span>
-    </div>
-
-    <div class="review-card cart-review">
-      <div class="card-header">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="9" cy="21" r="1"></circle>
-          <circle cx="20" cy="21" r="1"></circle>
-          <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"></path>
+    <div class="page-content">
+      <button class="btn-back" (click)="goBack()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
-        <h2>Order Summary ({{ cartItems.length }} Items)</h2>
-      </div>
+        Back to Cart
+      </button>
 
-      <!-- Cart Items List -->
-      <div class="cart-items-review">
-        <div class="cart-item-card" *ngFor="let item of cartItems; let i = index">
-          <div class="item-number">{{ i + 1 }}</div>
-          <div class="item-content">
-            <h4>{{ item.projectName }}</h4>
-            <p class="item-address">{{ item.projectAddress }}</p>
-            <div class="item-details-row">
-              <span class="detail-tag">{{ item.structureCategoryName }}</span>
-              <span class="detail-tag">{{ item.reportType.name }}</span>
-              <span class="detail-tag addons" *ngIf="item.selectedAddons && item.selectedAddons.length > 0">
-                +{{ item.selectedAddons.length }} addon{{ item.selectedAddons.length > 1 ? 's' : '' }}
-              </span>
-              <span class="detail-tag" *ngIf="item.structureType">
-                {{ item.structureType === 'main_and_garage' ? 'Main and Garage' : 'Main' }}
-              </span>
-              <span class="detail-tag" *ngIf="item.primaryPitch">Pitch: {{ item.primaryPitch }}</span>
-              <span class="detail-tag" *ngIf="item.secondaryPitch">Secondary: {{ item.secondaryPitch }}</span>
-            </div>
-          </div>
-          <div class="item-price">${{ item.totalPrice.toFixed(2) }}</div>
-        </div>
-      </div>
-
-      <div class="summary-section cart-summary">
-        <div class="summary-line">
-          <span>Items ({{ cartItems.length }})</span>
-          <span>${{ cartTotal.toFixed(2) }}</span>
-        </div>
-        <div class="summary-line total">
-          <span>Order Total</span>
-          <span>${{ cartTotal.toFixed(2) }}</span>
-        </div>
-      </div>
-
-      <div class="payment-note">
+      <!-- Error Message -->
+      <div class="alert alert-error" *ngIf="errorMessage">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="16" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
         </svg>
-        <span>Payment integration coming soon. Your order will be processed for review.</span>
+        <span>{{ errorMessage }}</span>
       </div>
 
-      <button class="btn-confirm" (click)="confirmOrder()" [disabled]="loading">
-        <span *ngIf="!loading">Place Order</span>
-        <span *ngIf="loading">Processing...</span>
-      </button>
+      <div class="review-card cart-review">
+        <div class="card-header">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"></path>
+          </svg>
+          <h2>Order Summary ({{ cartItems.length }} Items)</h2>
+        </div>
+
+        <!-- Cart Items List -->
+        <div class="cart-items-review">
+          <div class="cart-item-card" *ngFor="let item of cartItems; let i = index">
+            <div class="item-number">{{ i + 1 }}</div>
+            <div class="item-content">
+              <h4>{{ item.projectName }}</h4>
+              <p class="item-address">{{ item.projectAddress }}</p>
+              <div class="item-details-row">
+                <span class="detail-tag">{{ item.structureCategoryName }}</span>
+                <span class="detail-tag">{{ item.reportType.name }}</span>
+                <span class="detail-tag addons" *ngIf="item.selectedAddons && item.selectedAddons.length > 0">
+                  +{{ item.selectedAddons.length }} addon{{ item.selectedAddons.length > 1 ? 's' : '' }}
+                </span>
+                <span class="detail-tag" *ngIf="item.structureType">
+                  {{ item.structureType === 'main_and_garage' ? 'Main and Garage' : 'Main' }}
+                </span>
+                <span class="detail-tag" *ngIf="item.primaryPitch">Pitch: {{ item.primaryPitch }}</span>
+                <span class="detail-tag" *ngIf="item.secondaryPitch">Secondary: {{ item.secondaryPitch }}</span>
+              </div>
+            </div>
+            <div class="item-price">${{ item.totalPrice.toFixed(2) }}</div>
+          </div>
+        </div>
+
+        <div class="summary-section cart-summary">
+          <div class="summary-line">
+            <span>Items ({{ cartItems.length }})</span>
+            <span>${{ cartTotal.toFixed(2) }}</span>
+          </div>
+          <div class="summary-line total">
+            <span>Order Total</span>
+            <span>${{ cartTotal.toFixed(2) }}</span>
+          </div>
+        </div>
+
+        <div class="payment-note">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span>Payment integration coming soon. Your order will be processed for review.</span>
+        </div>
+
+        <button class="btn-confirm" (click)="confirmOrder()" [disabled]="loading">
+          <span *ngIf="!loading">Place Order</span>
+          <span *ngIf="loading">Processing...</span>
+        </button>
+      </div>
     </div>
   </ng-container>
 
   <!-- Confirmed State -->
   <ng-container *ngIf="orderConfirmed">
-    <div class="confirmation-card">
-      <div class="success-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-          <polyline points="22 4 12 14.01 9 11.01"></polyline>
-        </svg>
-      </div>
+    <div class="page-header success-header">
       <h1>Order Confirmed!</h1>
-      <p class="order-number">Order Number: <strong>{{ orderNumber }}</strong></p>
-      <p class="thank-you">Thank you for your order. We will process it shortly.</p>
+      <p>Thank you for your order</p>
+    </div>
 
-      <div class="confirmation-actions">
-        <button class="btn-primary" (click)="goToOrderDetails()">View Order Details</button>
-        <button class="btn-secondary" (click)="goToOrders()">View All Orders</button>
+    <div class="page-content">
+      <div class="confirmation-card">
+        <div class="success-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <p class="order-number">Order Number: <strong>{{ orderNumber }}</strong></p>
+        <p class="thank-you">We will process your order shortly.</p>
+
+        <div class="confirmation-actions">
+          <button class="btn-primary" (click)="goToOrderDetails()">View Order Details</button>
+          <button class="btn-secondary" (click)="goToOrders()">View All Orders</button>
+        </div>
       </div>
     </div>
   </ng-container>
