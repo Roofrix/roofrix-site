@@ -514,8 +514,9 @@
     }
 }
 
-// Mobile Sign Out (hidden on desktop)
-.mobile-signout {
+// Mobile Sign Out & Auth (hidden on desktop)
+.mobile-signout,
+.mobile-auth {
     display: none;
 }
 
@@ -606,6 +607,44 @@
 
                 svg {
                     stroke: #ff6b6b;
+                }
+            }
+
+            .mobile-auth {
+                display: flex;
+                flex-direction: row;
+                gap: 10px;
+                margin-top: 0;
+                padding-top: 0;
+                border-top: none;
+
+                .mobile-signin {
+                    background: transparent;
+                    border: 1px solid #3b82f6;
+                    padding: 12px;
+                    border-radius: 6px;
+                    color: #fff;
+                    font-size: 15px;
+                    cursor: pointer;
+
+                    &:hover {
+                        background: rgba(59, 130, 246, 0.1);
+                    }
+                }
+
+                .mobile-getstarted {
+                    background: #3b82f6;
+                    border: none;
+                    padding: 12px;
+                    border-radius: 6px;
+                    color: #fff;
+                    font-size: 15px;
+                    font-weight: 600;
+                    cursor: pointer;
+
+                    &:hover {
+                        background: #2563eb;
+                    }
                 }
             }
         }

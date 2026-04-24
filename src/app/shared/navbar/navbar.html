@@ -18,6 +18,10 @@
       </svg>
       Sign Out
     </button>
+    <div class="mobile-auth" *ngIf="(isAuthenticated$ | async) === false">
+      <button class="mobile-signin" (click)="navigateToSignin(); mobileMenuOpen = false">Sign In</button>
+      <button class="mobile-getstarted" (click)="navigateToSignup(); mobileMenuOpen = false">Get Started</button>
+    </div>
   </nav>
 
   <!-- Auth buttons when NOT logged in -->
