@@ -12,7 +12,7 @@ A web platform where customers order roof measurement reports and admins manage 
 | Layer | Technology |
 |-------|-----------|
 | Frontend | Angular 21 (standalone components) |
-| Auth | Firebase Authentication (email/password) |
+| Auth | Firebase Authentication (email/password) with email verification + password reset |
 | Database | Cloud Firestore |
 | File Storage | Firebase Storage |
 | Hosting | Firebase Hosting |
@@ -41,7 +41,7 @@ src/
       models/
         user.interface.ts
       services/
-        auth.service.ts            # Firebase Auth (signup, signin, signout) + loads pricing on login
+        auth.service.ts            # Firebase Auth (signup, signin, signout, email verification, password reset) + loads pricing on login
         user.service.ts            # User profiles CRUD
         order.service.ts           # Orders CRUD, status updates, messages, file URLs
         cart.service.ts            # In-memory + sessionStorage cart
@@ -62,6 +62,8 @@ src/
       auth/
         signin/
         signup/
+        verify-email/              # Post-signup email verification prompt
+        forgot-password/           # Password reset request form
       dashboard/
         customer/
           new-order/               # Order form with Google Maps
@@ -93,6 +95,8 @@ src/
 | `/contact` | Contact |
 | `/signin` | Sign In |
 | `/signup` | Sign Up |
+| `/verify-email` | Email verification prompt (after signup) |
+| `/forgot-password` | Password reset request |
 | `/404` | Not Found |
 
 ### Dashboard (auth required)
@@ -347,7 +351,17 @@ service firebase.storage {
   -> User enters email + password
   -> Firebase Auth createUserWithEmailAndPassword()
   -> Create Firestore document in users/{uid} with role: 'customer'
-  -> Redirect to /
+  -> Send verification email via sendEmailVerification()
+  -> Sign out user (cannot access protected routes until verified)
+  -> Redirect to /verify-email?email={email}
+```
+
+### Email Verification Flow
+```
+/verify-email page
+  -> Shows "Check your inbox" message with user's email
+  -> User clicks verification link in email -> Firebase marks emailVerified = true
+  -> User navigates to /signin to log in
 ```
 
 ### Sign In Flow
@@ -355,9 +369,20 @@ service firebase.storage {
 /signin page
   -> User enters email + password
   -> Firebase Auth signInWithEmailAndPassword()
-  -> Update lastLoginAt in users/{uid}
+  -> Check emailVerified: if false -> sign out, show error + "Resend Verification Email" button
+  -> If verified: Update lastLoginAt in users/{uid}
   -> PricingService.loadPricing() fetches system/order prices from Firestore
   -> Redirect to /
+```
+
+### Forgot Password Flow
+```
+/forgot-password page (linked from /signin)
+  -> User enters email
+  -> Firebase Auth sendPasswordResetEmail()
+  -> Show success message: "Reset link sent"
+  -> User clicks link in email -> sets new password on Firebase-hosted page
+  -> User signs in with new password
 ```
 
 ### Single Order Flow (Proceed to Checkout)

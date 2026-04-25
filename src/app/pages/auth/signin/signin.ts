@@ -27,6 +27,9 @@ export class SignIn implements OnInit {
   errorMessage = '';
   showPassword = false;
   returnUrl = '';
+  showResendButton = false;
+  resendLoading = false;
+  resendSuccess = false;
 
   ngOnInit(): void {
     // Get return URL from route parameters
@@ -100,6 +103,36 @@ export class SignIn implements OnInit {
           console.log('Sign in subscribe error:', err);
           this.errorMessage = err.message || 'An unexpected error occurred. Please try again.';
           this.loading = false;
+          this.showResendButton = this.errorMessage.includes('verify your email');
+          this.resendSuccess = false;
+          this.cdr.detectChanges();
+        });
+      }
+    });
+  }
+
+  resendVerification(): void {
+    const { email, password } = this.signInForm.value;
+    this.resendLoading = true;
+    this.resendSuccess = false;
+
+    this.authService.resendVerificationEmail(email, password).subscribe({
+      next: (result) => {
+        this.ngZone.run(() => {
+          this.resendLoading = false;
+          if (result.success) {
+            this.resendSuccess = true;
+            this.showResendButton = false;
+          } else {
+            this.errorMessage = result.error || 'Failed to resend verification email.';
+          }
+          this.cdr.detectChanges();
+        });
+      },
+      error: () => {
+        this.ngZone.run(() => {
+          this.resendLoading = false;
+          this.errorMessage = 'Failed to resend verification email. Please try again.';
           this.cdr.detectChanges();
         });
       }

@@ -11,6 +11,22 @@
         {{ errorMessage }}
       </div>
 
+      <!-- Resend Verification Email -->
+      <button
+        type="button"
+        class="resend-button"
+        *ngIf="showResendButton"
+        (click)="resendVerification()"
+        [disabled]="resendLoading"
+      >
+        {{ resendLoading ? 'Sending...' : 'Resend Verification Email' }}
+      </button>
+
+      <!-- Resend Success -->
+      <div class="success-alert" *ngIf="resendSuccess">
+        Verification email sent! Please check your inbox.
+      </div>
+
       <!-- Email Field -->
       <div class="form-group">
         <label for="email">Email Address</label>
@@ -51,6 +67,11 @@
         <span class="error-message" *ngIf="getErrorMessage('password')">
           {{ getErrorMessage('password') }}
         </span>
+      </div>
+
+      <!-- Forgot Password -->
+      <div class="forgot-password-link">
+        <a routerLink="/forgot-password">Forgot Password?</a>
       </div>
 
       <!-- Submit Button -->

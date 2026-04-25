@@ -10,6 +10,8 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail,
   UserCredential,
   User as FirebaseUser
 } from 'firebase/auth';
@@ -89,6 +91,12 @@ export class AuthService {
             name: name.trim()
           });
 
+          // Send verification email
+          await sendEmailVerification(credential.user);
+
+          // Sign out so user can't access protected routes before verifying
+          await signOut(this.auth);
+
           this.loadingSubject.next(false);
           return { success: true, uid: credential.user.uid };
         } catch (firestoreError) {
@@ -120,6 +128,13 @@ export class AuthService {
 
     return from(signInWithEmailAndPassword(this.auth, email.trim(), password)).pipe(
       switchMap(async (credential: UserCredential) => {
+        // Check email verification before allowing access
+        if (!credential.user.emailVerified) {
+          await signOut(this.auth);
+          this.loadingSubject.next(false);
+          return { success: false, error: 'Please verify your email before signing in. Check your inbox for the verification link.' };
+        }
+
         try {
           // Update last login timestamp
           await this.userService.updateLastLogin(credential.user.uid);
@@ -171,6 +186,34 @@ export class AuthService {
    */
   isAuthenticated(): boolean {
     return this.isAuthenticatedSubject.value;
+  }
+
+  /**
+   * Resend verification email by temporarily signing in
+   */
+  resendVerificationEmail(email: string, password: string): Observable<{ success: boolean; error?: string }> {
+    return from(signInWithEmailAndPassword(this.auth, email.trim(), password)).pipe(
+      switchMap(async (credential: UserCredential) => {
+        await sendEmailVerification(credential.user);
+        await signOut(this.auth);
+        return { success: true };
+      }),
+      catchError((error) => {
+        return of({ success: false, error: getFirebaseErrorMessage(error?.code || 'unknown') });
+      })
+    );
+  }
+
+  /**
+   * Send password reset email
+   */
+  forgotPassword(email: string): Observable<{ success: boolean; error?: string }> {
+    return from(sendPasswordResetEmail(this.auth, email.trim())).pipe(
+      map(() => ({ success: true })),
+      catchError((error) => {
+        return of({ success: false, error: getFirebaseErrorMessage(error?.code || 'unknown') });
+      })
+    );
   }
 
   /**

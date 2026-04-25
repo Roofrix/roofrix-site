@@ -1,0 +1,24 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="verify-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="20" height="16" x="2" y="4" rx="2"/>
+          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+        </svg>
+      </div>
+      <h1>Verify Your Email</h1>
+      <p *ngIf="email">We've sent a verification link to <strong>{{ email }}</strong></p>
+      <p *ngIf="!email">We've sent a verification link to your email address</p>
+    </div>
+
+    <div class="verify-instructions">
+      <p>Please check your inbox and click the verification link to activate your account.</p>
+      <p>If you don't see the email, check your spam or junk folder.</p>
+    </div>
+
+    <div class="auth-link">
+      Already verified? <a routerLink="/signin">Sign In</a>
+    </div>
+  </div>
+</div>

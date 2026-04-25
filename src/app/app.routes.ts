@@ -39,6 +39,14 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/auth/signup/signup').then((m) => m.SignUp),
       },
       {
+        path: 'verify-email',
+        loadComponent: () => import('./pages/auth/verify-email/verify-email').then((m) => m.VerifyEmail),
+      },
+      {
+        path: 'forgot-password',
+        loadComponent: () => import('./pages/auth/forgot-password/forgot-password').then((m) => m.ForgotPassword),
+      },
+      {
         path: '404',
         loadComponent: () => import('./pages/errors/not-found/not-found').then((m) => m.NotFound),
       },
