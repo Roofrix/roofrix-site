@@ -134,7 +134,13 @@
                 <span class="option-name">{{ type.name }}</span>
                 <span class="info-icon-wrapper">
                   <span class="info-badge">i</span>
-                  <span class="info-tooltip">{{ type.description }}</span>
+                  <span class="info-tooltip">
+                    {{ type.description }}
+                    <a *ngIf="getSampleFile(type.id)" class="view-sample-link"
+                      (click)="openSamplePreview(type.id); $event.preventDefault(); $event.stopPropagation()">
+                      View sample
+                    </a>
+                  </span>
                 </span>
               </div>
               <span class="option-price">${{ type.price }}</span>
@@ -335,5 +341,24 @@
       </div>
 
     </form>
+  </div>
+
+  <!-- Sample Report Preview Modal -->
+  <div class="preview-overlay" *ngIf="previewUrl" (click)="closeSamplePreview()">
+    <div class="preview-modal" (click)="$event.stopPropagation()">
+      <div class="preview-header">
+        <span class="preview-filename">{{ previewFileName }}</span>
+        <button type="button" class="preview-close" (click)="closeSamplePreview()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="preview-body">
+        <img *ngIf="previewIsImage" [src]="previewUrl" [alt]="previewFileName" />
+        <iframe *ngIf="!previewIsImage" [src]="previewUrl" frameborder="0"></iframe>
+      </div>
+    </div>
   </div>
 </div>

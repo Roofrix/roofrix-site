@@ -2,6 +2,7 @@ import { Component, inject, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewI
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AuthService } from '../../../../core/services/auth.service';
 import { OrderService, OrderReportType, OrderAddon } from '../../../../core/services/order.service';
 import { CartService } from '../../../../core/services/cart.service';
@@ -59,6 +60,7 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   private router = inject(Router);
   private ngZone = inject(NgZone);
   private fileTransferService = inject(FileTransferService);
+  private sanitizer = inject(DomSanitizer);
 
   private routeSubscription?: Subscription;
   private activatedRoute = inject(ActivatedRoute);
@@ -105,6 +107,22 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   // File upload
   selectedFiles: File[] = [];
   fileError = '';
+
+  // Sample report preview
+  previewUrl: string | SafeResourceUrl | null = null;
+  previewIsImage = false;
+  previewFileName = '';
+
+  private sampleFileMap: { [key: string]: { path: string; isImage: boolean } } = {
+    'roof_xml_only': { path: 'assets/order/roof xml only.jpeg', isImage: true },
+    'roof_esx_only': { path: 'assets/order/roof esx only.jpeg', isImage: true },
+    'roof_esx_pdf':  { path: 'assets/order/roof esx+pdf.pdf', isImage: false },
+    'roof_xml_pdf':  { path: 'assets/order/roof xml+pdf.pdf', isImage: false },
+    'wall_esx_x1':   { path: 'assets/order/wall esx only (x1).jpeg', isImage: true },
+    'wall_esx_pdf_x1': { path: 'assets/order/wall esx+pdf(x1).pdf', isImage: false },
+    'wall_esx_x2':   { path: 'assets/order/wall esx only(x2).jpeg', isImage: true },
+    'wall_esx_pdf_x2': { path: 'assets/order/wall esx+pdf(x2).pdf', isImage: false },
+  };
 
   // Inline validation errors (non-form-control fields)
   locationError = '';
@@ -476,6 +494,26 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
 
   removeFile(index: number): void {
     this.selectedFiles.splice(index, 1);
+  }
+
+  getSampleFile(typeId: string): boolean {
+    return !!this.sampleFileMap[typeId];
+  }
+
+  openSamplePreview(typeId: string): void {
+    const sample = this.sampleFileMap[typeId];
+    if (!sample) return;
+    this.previewIsImage = sample.isImage;
+    this.previewFileName = sample.path.split('/').pop() || '';
+    this.previewUrl = sample.isImage
+      ? sample.path
+      : this.sanitizer.bypassSecurityTrustResourceUrl(sample.path);
+  }
+
+  closeSamplePreview(): void {
+    this.previewUrl = null;
+    this.previewIsImage = false;
+    this.previewFileName = '';
   }
 
   onSubmit(): void {
