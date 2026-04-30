@@ -24,7 +24,7 @@ A web platform where customers order roof measurement reports and admins manage 
 
 | Role | Access |
 |------|--------|
-| **customer** | Create orders, upload photos, view order history, cart |
+| **customer** | Create orders, upload photos, view order history (Live/Completed tabs), cart |
 | **admin** | View all orders, view uploaded images/PDFs, update status, delete orders |
 
 ---
@@ -68,11 +68,11 @@ src/
         customer/
           new-order/               # Order form with Google Maps
           order-review/            # Review + confirm + file upload
-          orders/                  # Order history list
-            order-detail/          # Single order detail view
+          orders/                  # Order history list (Live/Completed tabs)
+            order-detail/          # Single order detail view (order-summary style per item, status timeline)
           cart/                    # Shopping cart
         admin/
-          orders/                  # Admin order management (image gallery, exact pin map)
+          orders/                  # Admin order management (Live/Completed tabs, image gallery, exact pin map)
       errors/
         not-found/
   environments/
@@ -107,7 +107,7 @@ src/
 | `/dashboard/customer/orders` | customerGuard | Order history |
 | `/dashboard/customer/orders/:orderId` | customerGuard | Order detail |
 | `/dashboard/customer/cart` | customerGuard | Shopping cart |
-| `/dashboard/admin/orders` | adminGuard | Admin order management |
+| `/dashboard/admin/orders` | adminGuard | Admin order management (Live/Completed tabs) |
 
 ---
 
@@ -164,13 +164,13 @@ Firebase Storage
 ---
 
 ### Collection: `orders`
-**Document ID**: `RR-{year}-{sequential}` (e.g., `RR-2026-0001`)
+**Document ID**: Sequential number starting from `10001` (e.g., `10001`, `10002`, ...)
 
 Order-level fields (shared across all items):
 
 | Field | Type | Description | Links to |
 |-------|------|-------------|----------|
-| `orderNumber` | string | Sequential ID (e.g., `RR-2026-0001`) | `system/counters.orderNumber` |
+| `orderNumber` | string | Sequential number (e.g., `10001`) | `system/counters.orderNumber` |
 | `projectName` | string | Auto-generated display name | |
 | `customerId` | string | Who placed the order | `users/{uid}` |
 | `customerEmail` | string | Snapshot at order time | |
@@ -295,6 +295,18 @@ project_closed
 ```
 
 Legacy statuses (backward compatibility): `pending`, `review`, `completed`, `cancelled`
+
+### Orders Tab Classification (both admin and customer)
+
+Both admin and customer orders pages split orders into two tabs:
+
+| Tab | Statuses |
+|-----|----------|
+| **Live** (default) | `order_placed`, `payment_pending`, `payment_accepted`, `work_not_started`, `in_progress`, `on_hold`, `work_completed`, `sent_for_review`, `pending` (legacy), `review` (legacy) |
+| **Completed** | `customer_approved`, `project_closed`, `completed` (legacy), `cancelled` (legacy) |
+
+- **Customer side**: Filtering via RxJS `map()` on the real-time Firestore listener (`customerOrdersListener`)
+- **Admin side**: Client-side array filtering in `filterOrders()`, combined with search and status dropdown filters
 
 ---
 
@@ -438,12 +450,13 @@ service firebase.storage {
 ```
 /dashboard/admin/orders
   -> Real-time listener on all orders (allOrdersListener)
+  -> Live/Completed tabs (same classification as customer side)
   -> Search by order number, customer name/email, address
-  -> Filter by status
+  -> Filter by status (dropdown: Order Placed, In Progress, On Hold, Work Completed, Project Closed)
   -> Click order -> view details modal (with item navigation for multi-item orders)
   -> View uploaded images (thumbnail gallery) and PDFs (download links)
   -> Map shows exact lat/lng pin location
-  -> Change status -> updateOrderStatus() adds statusTimeline entry
+  -> Change status -> updateOrderStatus() uses arrayUnion (single write, no read) -> adds statusTimeline entry
   -> Delete order -> deleteOrder()
 ```
 
@@ -482,7 +495,7 @@ Order Detail Page
 | `createOrder(data, createdBy)` | Create order with sequential number, returns orderId |
 | `getOrder(orderId)` | Get single order |
 | `updateOrder(orderId, data)` | Partial update |
-| `updateOrderStatus(orderId, status, by, email, notes)` | Update status + timeline |
+| `updateOrderStatus(orderId, status, by, email, notes)` | Update status + timeline (uses arrayUnion, single write) |
 | `getOrdersByCustomer(customerId)` | Query by customer |
 | `getAllOrders()` | All orders (admin) |
 | `orderListener(orderId)` | Real-time single order |

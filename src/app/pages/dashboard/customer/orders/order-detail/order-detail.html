@@ -48,89 +48,88 @@
     </div>
 
     <!-- Order Items -->
-    <div class="multi-item-card" *ngIf="order.items">
-      <div class="card-header">
+    <div class="order-items-section" *ngIf="order.items">
+      <div class="section-header">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
           <polyline points="14 2 14 8 20 8"></polyline>
         </svg>
         <h3>Order Items ({{ order.items.length }})</h3>
       </div>
-      <div class="card-body">
-        <div class="order-item" *ngFor="let item of order.items; let i = index">
-          <div class="item-header">
-            <span class="item-number">{{ i + 1 }}</span>
-            <div class="item-info">
-              <h4>{{ item.projectName }}</h4>
-              <p class="item-address">{{ item.projectAddress }}</p>
-            </div>
-            <span class="item-price">${{ item.totalPrice.toFixed(2) }}</span>
+      <div class="order-items-list">
+        <div class="order-item-card" *ngFor="let item of order.items; let i = index">
+          <div class="item-card-header">
+            <div class="item-number">{{ i + 1 }}</div>
+            <h4>{{ item.projectName }}</h4>
           </div>
-          <div class="item-details">
-            <span class="detail-tag">{{ item.structureCategoryName }}</span>
-            <span class="detail-tag">{{ item.reportType.name }}</span>
-            <span class="detail-tag addons" *ngIf="item.addons && item.addons.length > 0">
-              +{{ item.addons.length }} addon{{ item.addons.length > 1 ? 's' : '' }}
-            </span>
-            <span class="detail-tag" *ngIf="item.primaryPitch">Pitch: {{ item.primaryPitch }}</span>
-            <span class="detail-tag" *ngIf="item.secondaryPitch">Secondary Pitch: {{ item.secondaryPitch }}</span>
-            <span class="detail-tag" *ngIf="item.structureType">{{ item.structureType === 'main_and_garage' ? 'Main and Garage' : 'Main' }}</span>
-          </div>
-          <p class="item-instructions" *ngIf="item.specialInstructions">{{ item.specialInstructions }}</p>
-        </div>
-      </div>
-    </div>
 
-    <!-- Details Grid -->
-    <div class="details-grid">
-      <!-- Pricing Summary -->
-      <div class="detail-card">
-        <div class="card-header">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="1" x2="12" y2="23"></line>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-          </svg>
-          <h3>Pricing Summary</h3>
-        </div>
-        <div class="card-body">
-          <ng-container *ngFor="let item of order.items; let i = index">
-            <div class="price-row" *ngIf="order.items.length > 1">
-              <span>Item {{ i + 1 }}: {{ item.projectName }}</span>
-              <span>${{ item.totalPrice.toFixed(2) }}</span>
+          <div class="order-details">
+            <div class="detail-section">
+              <h3>Property Address</h3>
+              <p>{{ item.projectAddress }}</p>
+              <p class="coordinates" *ngIf="item.location">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                Lat: {{ item.location.lat.toFixed(6) }}, Lng: {{ item.location.lng.toFixed(6) }}
+              </p>
             </div>
-            <div class="price-row" *ngIf="order.items.length === 1">
-              <span>Base Price</span>
-              <span>${{ item.basePrice.toFixed(2) }}</span>
-            </div>
-            <div class="price-row" *ngIf="order.items.length === 1 && item.addonsTotal > 0">
-              <span>Addons Total</span>
-              <span>${{ item.addonsTotal.toFixed(2) }}</span>
-            </div>
-          </ng-container>
-          <div class="price-row total">
-            <span>Total</span>
-            <span>${{ (order.totalPrice || 0).toFixed(2) }}</span>
-          </div>
-        </div>
-      </div>
 
-      <!-- Customer Information -->
-      <div class="detail-card">
-        <div class="card-header">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-          <h3>Customer Information</h3>
-        </div>
-        <div class="card-body">
-          <div class="info-row">
-            <span class="label">Name</span>
-            <span class="value">{{ order.customerName }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Email</span>
-            <span class="value">{{ order.customerEmail }}</span>
+            <div class="detail-section">
+              <h3>Report Type</h3>
+              <div class="detail-row">
+                <span>{{ item.reportType.name }}</span>
+                <span>${{ item.reportType.price.toFixed(2) }}</span>
+              </div>
+            </div>
+
+            <div class="detail-section" *ngIf="item.addons && item.addons.length > 0">
+              <h3>Addons</h3>
+              <div class="detail-row" *ngFor="let addon of item.addons">
+                <span>{{ addon.name }}</span>
+                <span>${{ addon.price.toFixed(2) }}</span>
+              </div>
+            </div>
+
+            <div class="detail-section" *ngIf="item.structureCategoryName">
+              <h3>Structure Category</h3>
+              <p class="structure-category-badge">
+                {{ item.structureCategoryName }}
+                <span class="sq-range" *ngIf="item.structureCategorySqRange">({{ item.structureCategorySqRange }})</span>
+              </p>
+            </div>
+
+            <div class="detail-section" *ngIf="item.structureType">
+              <h3>Structure Type</h3>
+              <p>{{ item.structureType === 'main_and_garage' ? 'Main and Garage' : 'Main' }}</p>
+            </div>
+
+            <div class="detail-section" *ngIf="item.primaryPitch || item.secondaryPitch">
+              <h3>Roof Pitch</h3>
+              <p *ngIf="item.primaryPitch">Primary: {{ item.primaryPitch }}</p>
+              <p *ngIf="item.secondaryPitch">Secondary: {{ item.secondaryPitch }}</p>
+            </div>
+
+            <div class="detail-section" *ngIf="item.specialInstructions">
+              <h3>Special Instructions</h3>
+              <p class="instructions-text">{{ item.specialInstructions }}</p>
+            </div>
+
+            <div class="summary-section">
+              <div class="summary-line">
+                <span>Subtotal</span>
+                <span>${{ item.basePrice.toFixed(2) }}</span>
+              </div>
+              <div class="summary-line" *ngIf="item.addonsTotal > 0">
+                <span>Addons</span>
+                <span>${{ item.addonsTotal.toFixed(2) }}</span>
+              </div>
+              <div class="summary-line total">
+                <span>Total</span>
+                <span>${{ item.totalPrice.toFixed(2) }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
