@@ -7,6 +7,12 @@
     </div>
   </div>
 
+  <!-- Tabs -->
+  <div class="tabs-bar">
+    <button class="tab" [class.active]="activeTab === 'live'" (click)="switchTab('live')">Live</button>
+    <button class="tab" [class.active]="activeTab === 'completed'" (click)="switchTab('completed')">Completed</button>
+  </div>
+
   <!-- Filters and Search -->
   <div class="filters-section">
     <div class="search-box">
@@ -30,6 +36,7 @@
         <option value="in_progress">In Progress</option>
         <option value="on_hold">On Hold</option>
         <option value="work_completed">Work Completed</option>
+        <option value="project_closed">Project Closed</option>
       </select>
     </div>
   </div>
@@ -177,6 +184,7 @@
           <option value="in_progress">In Progress</option>
           <option value="on_hold">On Hold</option>
           <option value="work_completed">Work Completed</option>
+          <option value="project_closed">Project Closed</option>
         </select>
       </div>
 

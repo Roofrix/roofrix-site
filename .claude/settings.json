@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(firebase hosting:sites:list:*)"
+      "Bash(firebase hosting:sites:list:*)",
+      "Read(//d//**)"
     ]
   }
 }

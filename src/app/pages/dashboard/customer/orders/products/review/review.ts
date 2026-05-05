@@ -49,7 +49,7 @@ export class OrderReview implements OnInit {
 
   confirmOrder(): void {
     // Generate order number
-    this.orderNumber = 'ORD-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    this.orderNumber = (10000 + Math.floor(Math.random() * 90000)).toString();
     this.orderConfirmed = true;
 
     // Clear session storage

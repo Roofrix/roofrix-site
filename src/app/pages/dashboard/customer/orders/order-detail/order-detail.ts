@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { OrderService, Order } from '../../../../../core/services/order.service';
 
 @Component({
@@ -10,12 +11,13 @@ import { OrderService, Order } from '../../../../../core/services/order.service'
   templateUrl: './order-detail.html',
   styleUrl: './order-detail.scss',
 })
-export class OrderDetail implements OnInit {
+export class OrderDetail implements OnInit, OnDestroy {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private orderService = inject(OrderService);
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
+  private orderSubscription: Subscription | null = null;
 
   order: Order | null = null;
   loading = true;
@@ -31,26 +33,34 @@ export class OrderDetail implements OnInit {
     }
   }
 
-  async loadOrder(orderId: string): Promise<void> {
-    try {
-      const order = await this.orderService.getOrder(orderId);
-      this.ngZone.run(() => {
-        if (order) {
-          this.order = order;
-        } else {
-          this.error = 'Order not found';
-        }
-        this.loading = false;
-        this.cdr.detectChanges();
-      });
-    } catch (err) {
-      console.error('Error loading order:', err);
-      this.ngZone.run(() => {
-        this.error = 'Failed to load order details';
-        this.loading = false;
-        this.cdr.detectChanges();
-      });
+  ngOnDestroy(): void {
+    if (this.orderSubscription) {
+      this.orderSubscription.unsubscribe();
     }
+  }
+
+  loadOrder(orderId: string): void {
+    this.orderSubscription = this.orderService.orderListener(orderId).subscribe({
+      next: (order) => {
+        this.ngZone.run(() => {
+          if (order) {
+            this.order = order;
+          } else {
+            this.error = 'Order not found';
+          }
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
+      },
+      error: (err) => {
+        console.error('Error loading order:', err);
+        this.ngZone.run(() => {
+          this.error = 'Failed to load order details';
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
+      }
+    });
   }
 
   goBack(): void {

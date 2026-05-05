@@ -4,6 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 import { OrderService, Order, OrderStatus } from '../../../../core/services/order.service';
+
+const COMPLETED_STATUSES = new Set([
+  'customer_approved',
+  'project_closed',
+  'completed',
+  'cancelled',
+]);
 import { UserService } from '../../../../core/services/user.service';
 import { AuthService } from '../../../../core/services/auth.service';
 
@@ -28,7 +35,8 @@ export class AdminOrders implements OnInit, OnDestroy {
   loading = true;
   error = '';
 
-  // Search and filter
+  // Tabs and filters
+  activeTab: 'live' | 'completed' = 'live';
   searchQuery = '';
   statusFilter: OrderStatus | 'all' = 'all';
 
@@ -93,8 +101,18 @@ export class AdminOrders implements OnInit, OnDestroy {
   }
 
 
+  switchTab(tab: 'live' | 'completed'): void {
+    this.activeTab = tab;
+    this.filterOrders();
+  }
+
   filterOrders(): void {
-    let filtered = [...this.orders];
+    // Apply tab filter first
+    let filtered = this.orders.filter(order =>
+      this.activeTab === 'completed'
+        ? COMPLETED_STATUSES.has(order.status)
+        : !COMPLETED_STATUSES.has(order.status)
+    );
 
     // Apply search filter
     if (this.searchQuery.trim()) {

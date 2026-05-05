@@ -35,6 +35,9 @@
             formControlName="name"
             placeholder="Leo Finn"
           />
+          <span class="error-hint" *ngIf="contactForm.get('name')?.touched && contactForm.get('name')?.hasError('required')">
+            Name is required.
+          </span>
         </div>
 
         <div class="form-group">
@@ -45,6 +48,12 @@
             formControlName="email"
             placeholder="leo@example.com"
           />
+          <span class="error-hint" *ngIf="contactForm.get('email')?.touched && contactForm.get('email')?.hasError('required')">
+            Email is required.
+          </span>
+          <span class="error-hint" *ngIf="contactForm.get('email')?.touched && contactForm.get('email')?.hasError('email')">
+            Please enter a valid email address.
+          </span>
         </div>
 
         <div class="form-group">
@@ -55,6 +64,12 @@
             placeholder="Describe your project, report needs, or any questions you have."
             rows="3"
           ></textarea>
+          <span class="error-hint" *ngIf="contactForm.get('message')?.touched && contactForm.get('message')?.hasError('required')">
+            Message is required.
+          </span>
+          <span class="error-hint" *ngIf="contactForm.get('message')?.touched && contactForm.get('message')?.hasError('minlength')">
+            Message must be at least 10 characters.
+          </span>
         </div>
 
         <button type="submit" class="submit-btn" [disabled]="contactForm.invalid || loading">

@@ -47,3 +47,6 @@ nul
 # Environment files (sensitive configuration)
 /src/environments/environment.ts
 /src/environments/environment.prod.ts
+
+# Firebase service account key
+service-account-key.json

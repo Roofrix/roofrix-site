@@ -149,9 +149,8 @@ export class OrderService {
    * Generate sequential order number using Firestore counter
    */
   private async generateOrderNumber(): Promise<string> {
-    const year = new Date().getFullYear();
     const seq = await this.firestoreService.incrementCounter('system', 'counters', 'orderNumber');
-    return `RR-${year}-${seq.toString().padStart(4, '0')}`;
+    return seq.toString();
   }
 
   /**
@@ -247,12 +246,7 @@ export class OrderService {
   ): Promise<void> {
     try {
       const timestamp = this.firestoreService.getTimestamp();
-
-      // Get current order to append to timeline
-      const order = await this.getOrder(orderId);
-      if (!order) {
-        throw new Error('Order not found');
-      }
+      const { arrayUnion } = this.firestoreService.getArrayHelpers();
 
       // Create new timeline entry
       const timelineEntry: StatusTimelineEntry = {
@@ -263,15 +257,15 @@ export class OrderService {
         notes: notes || ''
       };
 
-      // Update order with new status and timeline
-      const updateData: Partial<Order> = {
+      // Build update data — use arrayUnion to avoid an extra read
+      const updateData: any = {
         status: newStatus,
-        statusTimeline: [...order.statusTimeline, timelineEntry],
+        statusTimeline: arrayUnion(timelineEntry),
         updatedAt: timestamp
       };
 
       // Set workStartedAt when work begins
-      if (newStatus === 'in_progress' && !order.workStartedAt) {
+      if (newStatus === 'in_progress') {
         updateData.workStartedAt = timestamp;
       }
 

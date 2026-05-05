@@ -2,9 +2,16 @@ import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Observable, Subscription } from 'rxjs';
-import { filter, take } from 'rxjs/operators';
+import { filter, take, map } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { OrderService, Order } from '../../../../core/services/order.service';
+
+const COMPLETED_STATUSES = new Set([
+  'customer_approved',
+  'project_closed',
+  'completed',
+  'cancelled',
+]);
 
 @Component({
   selector: 'app-customer-orders',
@@ -20,6 +27,8 @@ export class CustomerOrders implements OnInit, OnDestroy {
   private authSubscription: Subscription | null = null;
 
   orders$: Observable<Order[]> | null = null;
+  filteredOrders$: Observable<Order[]> | null = null;
+  activeTab: 'live' | 'completed' = 'live';
   loading = true;
   error = '';
 
@@ -49,8 +58,27 @@ export class CustomerOrders implements OnInit, OnDestroy {
 
       // Use real-time listener for customer orders
       this.orders$ = this.orderService.customerOrdersListener(user.uid);
+      this.applyTabFilter();
       this.loading = false;
     });
+  }
+
+  switchTab(tab: 'live' | 'completed'): void {
+    this.activeTab = tab;
+    this.applyTabFilter();
+  }
+
+  private applyTabFilter(): void {
+    if (!this.orders$) return;
+    this.filteredOrders$ = this.orders$.pipe(
+      map(orders =>
+        orders.filter(order =>
+          this.activeTab === 'completed'
+            ? COMPLETED_STATUSES.has(order.status)
+            : !COMPLETED_STATUSES.has(order.status)
+        )
+      )
+    );
   }
 
   getStatusClass(status: string): string {

@@ -65,7 +65,9 @@ export class AuthService {
         };
         this.currentUserSubject.next(user);
         this.isAuthenticatedSubject.next(true);
-        this.pricingService.loadPricing();
+        if (firebaseUser.emailVerified) {
+          this.pricingService.loadPricing();
+        }
       } else {
         this.currentUserSubject.next(null);
         this.isAuthenticatedSubject.next(false);
@@ -92,7 +94,9 @@ export class AuthService {
           });
 
           // Send verification email
+          console.log('Sending verification email to:', credential.user.email);
           await sendEmailVerification(credential.user);
+          console.log('Verification email sent successfully!');
 
           // Sign out so user can't access protected routes before verifying
           await signOut(this.auth);
@@ -194,7 +198,9 @@ export class AuthService {
   resendVerificationEmail(email: string, password: string): Observable<{ success: boolean; error?: string }> {
     return from(signInWithEmailAndPassword(this.auth, email.trim(), password)).pipe(
       switchMap(async (credential: UserCredential) => {
+        console.log('Resending verification email to:', credential.user.email);
         await sendEmailVerification(credential.user);
+        console.log('Verification email resent successfully!');
         await signOut(this.auth);
         return { success: true };
       }),

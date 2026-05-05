@@ -8,6 +8,7 @@ import { firstValueFrom } from 'rxjs';
 import { StorageService } from '../../../../core/services/storage.service';
 import { FileTransferService } from '../../../../core/services/file-transfer.service';
 import { UserService } from '../../../../core/services/user.service';
+import { EmailNotificationService } from '../../../../core/services/email-notification.service';
 
 @Component({
   selector: 'app-order-review',
@@ -27,6 +28,7 @@ export class OrderReview implements OnInit {
   private storageService = inject(StorageService);
   private fileTransferService = inject(FileTransferService);
   private userService = inject(UserService);
+  private emailNotificationService = inject(EmailNotificationService);
 
   orderData: any = null;
   cartItems: CartItem[] = [];
@@ -176,6 +178,16 @@ export class OrderReview implements OnInit {
     sessionStorage.removeItem('orderData');
     sessionStorage.removeItem('selectedStructureType');
 
+    // Send email notification to admin (fire-and-forget)
+    this.emailNotificationService.sendNewOrderNotification({
+      orderNumber: this.orderNumber,
+      customerName: orderData.customerName,
+      customerEmail: orderData.customerEmail,
+      totalPrice: orderData.totalPrice,
+      itemCount: 1,
+      projectAddress: item.projectAddress
+    });
+
     this.ngZone.run(() => {
       this.loading = false;
       this.uploadingFiles = false;
@@ -269,6 +281,17 @@ export class OrderReview implements OnInit {
     sessionStorage.removeItem('cartCheckout');
     sessionStorage.removeItem('orderData');
     sessionStorage.removeItem('selectedStructureType');
+
+    // Send email notification to admin (fire-and-forget)
+    const firstItemAddress = orderItems[0]?.projectAddress || 'Multiple addresses';
+    this.emailNotificationService.sendNewOrderNotification({
+      orderNumber: this.orderNumber,
+      customerName: orderData.customerName,
+      customerEmail: orderData.customerEmail,
+      totalPrice: orderData.totalPrice,
+      itemCount: orderItems.length,
+      projectAddress: firstItemAddress
+    });
 
     this.ngZone.run(() => {
       this.loading = false;

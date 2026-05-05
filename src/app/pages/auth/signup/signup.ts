@@ -98,7 +98,10 @@ export class SignUp implements OnInit {
           this.ngZone.run(() => {
             this.errorMessage = result.error || 'Sign up failed. Please try again.';
             this.loading = false;
-            console.log('Error message set:', this.errorMessage);
+            this.cdr.detectChanges();
+            setTimeout(() => {
+              document.querySelector('.error-alert')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
           });
         }
       },
@@ -106,7 +109,10 @@ export class SignUp implements OnInit {
         this.ngZone.run(() => {
           this.errorMessage = 'An unexpected error occurred. Please try again.';
           this.loading = false;
-          console.log('Error occurred, message set:', this.errorMessage);
+          this.cdr.detectChanges();
+          setTimeout(() => {
+            document.querySelector('.error-alert')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          });
         });
       }
     });
