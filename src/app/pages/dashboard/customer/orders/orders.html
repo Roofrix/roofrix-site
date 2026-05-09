@@ -146,6 +146,13 @@
                   <circle cx="12" cy="12" r="3"></circle>
                 </svg>
               </button>
+              <button class="action-btn delete-btn" *ngIf="!order.isDeleted" (click)="openCancelModal(order); $event.stopPropagation()" title="Cancel Order">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              </button>
             </div>
           </td>
         </tr>
@@ -177,6 +184,47 @@
       </label>
       <button class="page-btn" (click)="prevPage()" [disabled]="currentPage === 1">&lsaquo; Prev</button>
       <button class="page-btn" (click)="nextPage()" [disabled]="currentPage >= totalPages">Next &rsaquo;</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cancel Order Modal -->
+<div class="modal-overlay" *ngIf="showCancelModal" (click)="closeCancelModal()">
+  <div class="modal cancel-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header cancel-header">
+      <h2>Cancel Order</h2>
+      <button class="close-btn" (click)="closeCancelModal()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body" *ngIf="orderToCancel">
+      <div class="cancel-warning">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <p>Are you sure you want to cancel this order?</p>
+      </div>
+      <div class="order-info cancel-info">
+        <strong>{{ orderToCancel.orderNumber }}</strong>
+        <span>{{ orderToCancel.projectName }}</span>
+      </div>
+      <p class="cancel-note">The order will be moved to the Cancelled tab.</p>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeCancelModal()" [disabled]="cancelling">
+        Keep Order
+      </button>
+      <button class="btn-danger" (click)="cancelOrder()" [disabled]="cancelling">
+        <span *ngIf="!cancelling">Cancel Order</span>
+        <span *ngIf="cancelling">Cancelling...</span>
+      </button>
     </div>
   </div>
 </div>

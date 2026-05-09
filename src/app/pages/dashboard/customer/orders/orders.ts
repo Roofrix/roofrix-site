@@ -54,6 +54,11 @@ export class CustomerOrders implements OnInit, OnDestroy {
   currentPage = 1;
   pageSize = 10;
 
+  // Cancel modal
+  showCancelModal = false;
+  orderToCancel: Order | null = null;
+  cancelling = false;
+
   ngOnInit(): void {
     this.loadOrders();
   }
@@ -304,6 +309,40 @@ export class CustomerOrders implements OnInit, OnDestroy {
 
   getImageCount(order: Order): number {
     return (order.items || []).reduce((sum, item) => sum + (item.siteImages?.length || 0), 0);
+  }
+
+  // Cancel order
+  openCancelModal(order: Order): void {
+    this.orderToCancel = order;
+    this.showCancelModal = true;
+  }
+
+  closeCancelModal(): void {
+    this.showCancelModal = false;
+    this.orderToCancel = null;
+  }
+
+  async cancelOrder(): Promise<void> {
+    if (!this.orderToCancel) return;
+
+    this.cancelling = true;
+    this.cdr.detectChanges();
+
+    try {
+      await this.orderService.deleteOrder(this.orderToCancel.id);
+      this.ngZone.run(() => {
+        this.cancelling = false;
+        this.closeCancelModal();
+        this.cdr.detectChanges();
+      });
+    } catch (err) {
+      console.error('Error cancelling order:', err);
+      this.ngZone.run(() => {
+        this.cancelling = false;
+        this.closeCancelModal();
+        this.cdr.detectChanges();
+      });
+    }
   }
 
   viewOrderDetails(orderId: string): void {
