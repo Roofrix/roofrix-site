@@ -1,53 +1,73 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Observable, Subscription } from 'rxjs';
-import { filter, take, map } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
+import { filter, take } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { OrderService, Order } from '../../../../core/services/order.service';
+import { UserService } from '../../../../core/services/user.service';
 
 const COMPLETED_STATUSES = new Set([
   'customer_approved',
   'project_closed',
   'completed',
+]);
+
+const CANCELLED_STATUSES = new Set([
   'cancelled',
 ]);
 
 @Component({
   selector: 'app-customer-orders',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './orders.html',
   styleUrl: './orders.scss',
 })
 export class CustomerOrders implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private orderService = inject(OrderService);
+  private userService = inject(UserService);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
   private authSubscription: Subscription | null = null;
+  private ordersSubscription: Subscription | null = null;
 
-  orders$: Observable<Order[]> | null = null;
-  filteredOrders$: Observable<Order[]> | null = null;
-  activeTab: 'live' | 'completed' = 'live';
+  // Data
+  allOrders: Order[] = [];
+  filteredOrders: Order[] = [];
+  paginatedOrders: Order[] = [];
   loading = true;
   error = '';
+
+  // Welcome & Stats
+  userName = '';
+  totalOrders = 0;
+  completedCount = 0;
+  inProgressCount = 0;
+
+  // Tabs, search, pagination
+  activeTab: 'open' | 'completed' | 'cancelled' = 'open';
+  searchQuery = '';
+  currentPage = 1;
+  pageSize = 10;
 
   ngOnInit(): void {
     this.loadOrders();
   }
 
   ngOnDestroy(): void {
-    if (this.authSubscription) {
-      this.authSubscription.unsubscribe();
-    }
+    this.authSubscription?.unsubscribe();
+    this.ordersSubscription?.unsubscribe();
   }
 
   loadOrders(): void {
-    // Wait for auth to finish loading before getting user
     this.authSubscription = this.authService.loading$.pipe(
       filter(loading => !loading),
       take(1)
-    ).subscribe(() => {
+    ).subscribe(async () => {
       const user = this.authService.getCurrentUser();
 
       if (!user?.uid) {
@@ -56,29 +76,175 @@ export class CustomerOrders implements OnInit, OnDestroy {
         return;
       }
 
-      // Use real-time listener for customer orders
-      this.orders$ = this.orderService.customerOrdersListener(user.uid);
-      this.applyTabFilter();
-      this.loading = false;
+      // Load user name
+      try {
+        const profile = await this.userService.getUserProfile(user.uid);
+        this.userName = profile?.name || user.email || 'User';
+      } catch {
+        this.userName = user.email || 'User';
+      }
+
+      // Subscribe to orders
+      this.ordersSubscription = this.orderService.customerOrdersListener(user.uid).subscribe({
+        next: (orders) => {
+          this.ngZone.run(() => {
+            this.allOrders = orders;
+            this.computeStats();
+            this.filterOrders();
+            this.loading = false;
+            this.cdr.detectChanges();
+          });
+        },
+        error: (err) => {
+          this.ngZone.run(() => {
+            console.error('Error loading orders:', err);
+            this.error = 'Failed to load orders';
+            this.loading = false;
+            this.cdr.detectChanges();
+          });
+        }
+      });
     });
   }
 
-  switchTab(tab: 'live' | 'completed'): void {
-    this.activeTab = tab;
-    this.applyTabFilter();
+  computeStats(): void {
+    const activeOrders = this.allOrders.filter(o => !o.isDeleted);
+    this.totalOrders = activeOrders.length;
+    this.completedCount = activeOrders.filter(o => COMPLETED_STATUSES.has(o.status)).length;
+    this.inProgressCount = activeOrders.filter(o => o.status === 'in_progress').length;
   }
 
-  private applyTabFilter(): void {
-    if (!this.orders$) return;
-    this.filteredOrders$ = this.orders$.pipe(
-      map(orders =>
-        orders.filter(order =>
-          this.activeTab === 'completed'
-            ? COMPLETED_STATUSES.has(order.status)
-            : !COMPLETED_STATUSES.has(order.status)
+  switchTab(tab: 'open' | 'completed' | 'cancelled'): void {
+    this.activeTab = tab;
+    this.currentPage = 1;
+    this.filterOrders();
+  }
+
+  onSearchChange(): void {
+    this.currentPage = 1;
+    this.filterOrders();
+  }
+
+  filterOrders(): void {
+    // Tab filter
+    let filtered = this.allOrders.filter(order => {
+      const isDeleted = order.isDeleted === true;
+      const isCancelled = CANCELLED_STATUSES.has(order.status);
+      if (this.activeTab === 'cancelled') return isDeleted || isCancelled;
+      if (isDeleted) return false; // hide deleted from other tabs
+      if (this.activeTab === 'completed') return COMPLETED_STATUSES.has(order.status);
+      return !COMPLETED_STATUSES.has(order.status) && !isCancelled;
+    });
+
+    // Search filter
+    if (this.searchQuery.trim()) {
+      const query = this.searchQuery.toLowerCase();
+      filtered = filtered.filter(order =>
+        order.orderNumber.toLowerCase().includes(query) ||
+        (order.projectName || '').toLowerCase().includes(query) ||
+        (order.items || []).some(item =>
+          item.projectAddress?.toLowerCase().includes(query) ||
+          item.reportType?.name?.toLowerCase().includes(query) ||
+          item.structureCategoryName?.toLowerCase().includes(query)
         )
+      );
+    }
+
+    this.filteredOrders = filtered;
+    this.applyPagination();
+  }
+
+  applyPagination(): void {
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.paginatedOrders = this.filteredOrders.slice(start, start + this.pageSize);
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredOrders.length / this.pageSize));
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.applyPagination();
+    }
+  }
+
+  prevPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.applyPagination();
+    }
+  }
+
+  onPageSizeChange(): void {
+    this.pageSize = Number(this.pageSize);
+    this.currentPage = 1;
+    this.applyPagination();
+  }
+
+  // Table helpers
+  getReportType(order: Order): string {
+    return order.items?.[0]?.reportType?.name || 'N/A';
+  }
+
+  getCategory(order: Order): string {
+    return order.items?.[0]?.structureCategoryName || 'N/A';
+  }
+
+  isRushOrder(order: Order): boolean {
+    return (order.items || []).some(item =>
+      item.addons?.some(addon =>
+        addon.name.toLowerCase().includes('rush') || addon.id?.includes('rush')
       )
     );
+  }
+
+  getPriorityLabel(order: Order): string {
+    return this.isRushOrder(order) ? 'Rush Order' : 'Standard Order';
+  }
+
+  getPriorityClass(order: Order): string {
+    return this.isRushOrder(order) ? 'priority-rush' : 'priority-standard';
+  }
+
+  getRemainingTime(order: Order): { hours: number; minutes: number; totalMs: number } {
+    if (!order.createdAt) return { hours: 0, minutes: 0, totalMs: 0 };
+
+    const createdDate = order.createdAt.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+    const now = new Date();
+    const elapsed = now.getTime() - createdDate.getTime();
+
+    const totalAllowedMs = this.isRushOrder(order) ? 2 * 60 * 60 * 1000 : 8 * 60 * 60 * 1000;
+    const remaining = totalAllowedMs - elapsed;
+
+    const absRemaining = Math.abs(remaining);
+    const hours = Math.floor(absRemaining / (1000 * 60 * 60));
+    const minutes = Math.floor((absRemaining % (1000 * 60 * 60)) / (1000 * 60));
+
+    return { hours, minutes, totalMs: remaining };
+  }
+
+  getCountdownDisplay(order: Order): string {
+    if (!order.createdAt) return '--';
+
+    const { hours, minutes, totalMs } = this.getRemainingTime(order);
+
+    if (totalMs <= 0) {
+      return `-${hours}h ${minutes}m`;
+    }
+    return `${hours}h ${minutes}m`;
+  }
+
+  getTimeClass(order: Order): string {
+    if (!order.createdAt) return '';
+
+    const { totalMs } = this.getRemainingTime(order);
+
+    if (totalMs <= 0) return 'time-overdue';
+    if (totalMs < 30 * 60 * 1000) return 'time-urgent';
+    if (totalMs < 60 * 60 * 1000) return 'time-warning';
+    return 'time-normal';
   }
 
   getStatusClass(status: string): string {
@@ -93,7 +259,6 @@ export class CustomerOrders implements OnInit, OnDestroy {
       'sent_for_review': 'status-sent-for-review',
       'customer_approved': 'status-customer-approved',
       'project_closed': 'status-project-closed',
-      // Legacy statuses
       'pending': 'status-pending',
       'review': 'status-review',
       'completed': 'status-completed',
@@ -114,7 +279,6 @@ export class CustomerOrders implements OnInit, OnDestroy {
       'sent_for_review': 'Sent for Review',
       'customer_approved': 'Customer Approved',
       'project_closed': 'Project Closed',
-      // Legacy statuses
       'pending': 'Pending',
       'review': 'Under Review',
       'completed': 'Completed',

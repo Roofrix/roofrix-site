@@ -4,15 +4,18 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 import { OrderService, Order, OrderStatus } from '../../../../core/services/order.service';
+import { UserService } from '../../../../core/services/user.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 const COMPLETED_STATUSES = new Set([
   'customer_approved',
   'project_closed',
   'completed',
+]);
+
+const CANCELLED_STATUSES = new Set([
   'cancelled',
 ]);
-import { UserService } from '../../../../core/services/user.service';
-import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-admin-orders',
@@ -32,13 +35,21 @@ export class AdminOrders implements OnInit, OnDestroy {
 
   orders: Order[] = [];
   filteredOrders: Order[] = [];
+  paginatedOrders: Order[] = [];
   loading = true;
   error = '';
 
-  // Tabs and filters
-  activeTab: 'live' | 'completed' = 'live';
+  // Welcome & Stats
+  userName = '';
+  totalOrders = 0;
+  completedCount = 0;
+  inProgressCount = 0;
+
+  // Tabs, search, pagination
+  activeTab: 'open' | 'completed' | 'cancelled' = 'open';
   searchQuery = '';
-  statusFilter: OrderStatus | 'all' = 'all';
+  currentPage = 1;
+  pageSize = 10;
 
   // Status change modal
   showStatusModal = false;
@@ -46,7 +57,6 @@ export class AdminOrders implements OnInit, OnDestroy {
   newStatus: OrderStatus = 'pending';
   statusNotes = '';
   updatingStatus = false;
-
 
   // Job Details modal
   showDetailsModal = false;
@@ -64,13 +74,26 @@ export class AdminOrders implements OnInit, OnDestroy {
   snackbarType: 'success' | 'error' = 'success';
 
   ngOnInit(): void {
+    this.loadUserName();
     this.loadOrders();
   }
 
   ngOnDestroy(): void {
-    // Clean up subscription to prevent memory leaks
     if (this.ordersSubscription) {
       this.ordersSubscription.unsubscribe();
+    }
+  }
+
+  async loadUserName(): Promise<void> {
+    const user = this.authService.getCurrentUser();
+    if (user?.uid) {
+      try {
+        const profile = await this.userService.getUserProfile(user.uid);
+        this.userName = profile?.name || user.email || 'Admin';
+      } catch {
+        this.userName = user.email || 'Admin';
+      }
+      this.cdr.detectChanges();
     }
   }
 
@@ -78,12 +101,11 @@ export class AdminOrders implements OnInit, OnDestroy {
     this.loading = true;
     this.error = '';
 
-    // Use real-time listener with limit for better performance
     this.ordersSubscription = this.orderService.allOrdersListener(100).subscribe({
       next: (orders) => {
-        // Run inside NgZone to ensure change detection triggers
         this.ngZone.run(() => {
           this.orders = orders;
+          this.computeStats();
           this.filterOrders();
           this.loading = false;
           this.cdr.detectChanges();
@@ -100,21 +122,31 @@ export class AdminOrders implements OnInit, OnDestroy {
     });
   }
 
+  computeStats(): void {
+    const activeOrders = this.orders.filter(o => !o.isDeleted);
+    this.totalOrders = activeOrders.length;
+    this.completedCount = activeOrders.filter(o => COMPLETED_STATUSES.has(o.status)).length;
+    this.inProgressCount = activeOrders.filter(o => o.status === 'in_progress').length;
+  }
 
-  switchTab(tab: 'live' | 'completed'): void {
+  switchTab(tab: 'open' | 'completed' | 'cancelled'): void {
     this.activeTab = tab;
+    this.currentPage = 1;
     this.filterOrders();
   }
 
   filterOrders(): void {
-    // Apply tab filter first
-    let filtered = this.orders.filter(order =>
-      this.activeTab === 'completed'
-        ? COMPLETED_STATUSES.has(order.status)
-        : !COMPLETED_STATUSES.has(order.status)
-    );
+    // Tab filter
+    let filtered = this.orders.filter(order => {
+      const isDeleted = order.isDeleted === true;
+      const isCancelled = CANCELLED_STATUSES.has(order.status);
+      if (this.activeTab === 'cancelled') return isDeleted || isCancelled;
+      if (isDeleted) return false; // hide deleted from other tabs
+      if (this.activeTab === 'completed') return COMPLETED_STATUSES.has(order.status);
+      return !COMPLETED_STATUSES.has(order.status) && !isCancelled;
+    });
 
-    // Apply search filter
+    // Search filter
     if (this.searchQuery.trim()) {
       const query = this.searchQuery.toLowerCase();
       filtered = filtered.filter(order =>
@@ -122,26 +154,62 @@ export class AdminOrders implements OnInit, OnDestroy {
         order.customerName.toLowerCase().includes(query) ||
         order.customerEmail.toLowerCase().includes(query) ||
         (order.projectName || '').toLowerCase().includes(query) ||
-        (order.items || []).some(item => item.projectAddress.toLowerCase().includes(query))
+        (order.items || []).some(item =>
+          item.projectAddress?.toLowerCase().includes(query) ||
+          item.reportType?.name?.toLowerCase().includes(query) ||
+          item.structureCategoryName?.toLowerCase().includes(query)
+        )
       );
     }
 
-    // Apply status filter
-    if (this.statusFilter !== 'all') {
-      filtered = filtered.filter(order => order.status === this.statusFilter);
-    }
-
     this.filteredOrders = filtered;
+    this.applyPagination();
+  }
+
+  applyPagination(): void {
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.paginatedOrders = this.filteredOrders.slice(start, start + this.pageSize);
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredOrders.length / this.pageSize));
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.applyPagination();
+    }
+  }
+
+  prevPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.applyPagination();
+    }
+  }
+
+  onPageSizeChange(): void {
+    this.pageSize = Number(this.pageSize);
+    this.currentPage = 1;
+    this.applyPagination();
   }
 
   onSearchChange(): void {
+    this.currentPage = 1;
     this.filterOrders();
   }
 
-  onStatusFilterChange(): void {
-    this.filterOrders();
+  // Table helpers
+  getReportType(order: Order): string {
+    return order.items?.[0]?.reportType?.name || 'N/A';
   }
 
+  getCategory(order: Order): string {
+    return order.items?.[0]?.structureCategoryName || 'N/A';
+  }
+
+  // Status modal
   openStatusModal(order: Order): void {
     this.selectedOrder = order;
     this.newStatus = order.status;
@@ -172,17 +240,17 @@ export class AdminOrders implements OnInit, OnDestroy {
         this.statusNotes || undefined
       );
 
-      // Orders will auto-update via real-time listener
       this.closeStatusModal();
+      this.showNotification('Status updated successfully', 'success');
     } catch (err) {
       console.error('Error updating status:', err);
-      alert('Failed to update order status');
+      this.showNotification('Failed to update order status', 'error');
     } finally {
       this.updatingStatus = false;
     }
   }
 
-
+  // Details modal
   openDetailsModal(order: Order): void {
     this.detailsOrder = order;
     this.currentItemIndex = 0;
@@ -195,7 +263,6 @@ export class AdminOrders implements OnInit, OnDestroy {
     this.currentItemIndex = 0;
   }
 
-  // Item navigation for multi-item orders
   getCurrentItem(): any {
     if (!this.detailsOrder?.items || this.detailsOrder.items.length === 0) {
       return null;
@@ -219,6 +286,7 @@ export class AdminOrders implements OnInit, OnDestroy {
     return (this.detailsOrder?.items?.length || 0) > 1;
   }
 
+  // Delete modal
   openDeleteModal(order: Order): void {
     this.orderToDelete = order;
     this.showDeleteModal = true;
@@ -241,7 +309,7 @@ export class AdminOrders implements OnInit, OnDestroy {
       this.ngZone.run(() => {
         this.deleting = false;
         this.closeDeleteModal();
-        this.showNotification('Order deleted successfully', 'success');
+        this.showNotification('Order cancelled successfully', 'success');
         this.cdr.detectChanges();
       });
     } catch (err) {
@@ -249,7 +317,7 @@ export class AdminOrders implements OnInit, OnDestroy {
       this.ngZone.run(() => {
         this.deleting = false;
         this.closeDeleteModal();
-        this.showNotification('Failed to delete order', 'error');
+        this.showNotification('Failed to cancel order', 'error');
         this.cdr.detectChanges();
       });
     }
@@ -261,7 +329,6 @@ export class AdminOrders implements OnInit, OnDestroy {
     this.showSnackbar = true;
     this.cdr.detectChanges();
 
-    // Auto-hide after 3 seconds
     setTimeout(() => {
       this.ngZone.run(() => {
         this.showSnackbar = false;
@@ -309,7 +376,6 @@ export class AdminOrders implements OnInit, OnDestroy {
     return 'other';
   }
 
-
   getStatusClass(status: string): string {
     const statusClasses: { [key: string]: string } = {
       'order_placed': 'status-order-placed',
@@ -322,7 +388,6 @@ export class AdminOrders implements OnInit, OnDestroy {
       'sent_for_review': 'status-sent-for-review',
       'customer_approved': 'status-customer-approved',
       'project_closed': 'status-project-closed',
-      // Legacy statuses
       'pending': 'status-pending',
       'review': 'status-review',
       'completed': 'status-completed',
@@ -343,7 +408,6 @@ export class AdminOrders implements OnInit, OnDestroy {
       'sent_for_review': 'Sent for Review',
       'customer_approved': 'Customer Approved',
       'project_closed': 'Project Closed',
-      // Legacy statuses
       'pending': 'Pending',
       'review': 'Under Review',
       'completed': 'Completed',
@@ -365,7 +429,11 @@ export class AdminOrders implements OnInit, OnDestroy {
     return this.isRushOrder(order) ? 'Rush Order' : 'Standard Order';
   }
 
-  // Timer methods - countdown from order creation
+  getPriorityClass(order: Order): string {
+    return this.isRushOrder(order) ? 'priority-rush' : 'priority-standard';
+  }
+
+  // Timer methods
   getRemainingTime(order: Order): { hours: number; minutes: number; totalMs: number } {
     if (!order.createdAt) return { hours: 0, minutes: 0, totalMs: 0 };
 
@@ -418,9 +486,5 @@ export class AdminOrders implements OnInit, OnDestroy {
     } catch {
       return 'N/A';
     }
-  }
-
-  getPriorityClass(order: Order): string {
-    return this.isRushOrder(order) ? 'priority-rush' : 'priority-standard';
   }
 }

@@ -24,8 +24,8 @@ A web platform where customers order roof measurement reports and admins manage 
 
 | Role | Access |
 |------|--------|
-| **customer** | Create orders, upload photos, view order history (Live/Completed tabs), cart |
-| **admin** | View all orders, view uploaded images/PDFs, update status, delete orders |
+| **customer** | Create orders, upload photos, view order history (Open/Completed/Cancelled tabs), cart |
+| **admin** | View all orders, view uploaded images/PDFs, update status, cancel orders (soft delete) |
 
 ---
 
@@ -68,11 +68,11 @@ src/
         customer/
           new-order/               # Order form with Google Maps
           order-review/            # Review + confirm + file upload
-          orders/                  # Order history list (Live/Completed tabs)
+          orders/                  # Order history list (Open/Completed/Cancelled tabs, welcome header, stats, table, search, pagination)
             order-detail/          # Single order detail view (order-summary style per item, status timeline)
           cart/                    # Shopping cart
         admin/
-          orders/                  # Admin order management (Live/Completed tabs, image gallery, exact pin map)
+          orders/                  # Admin order management (Open/Completed/Cancelled tabs, welcome header, stats, table, search, pagination, image gallery, exact pin map)
       errors/
         not-found/
   environments/
@@ -107,7 +107,7 @@ src/
 | `/dashboard/customer/orders` | customerGuard | Order history |
 | `/dashboard/customer/orders/:orderId` | customerGuard | Order detail |
 | `/dashboard/customer/cart` | customerGuard | Shopping cart |
-| `/dashboard/admin/orders` | adminGuard | Admin order management (Live/Completed tabs) |
+| `/dashboard/admin/orders` | adminGuard | Admin order management (Open/Completed/Cancelled tabs) |
 
 ---
 
@@ -184,6 +184,8 @@ Order-level fields (shared across all items):
 | `updatedAt` | timestamp | | |
 | `completedAt` | timestamp | Optional | |
 | `workStartedAt` | timestamp | Optional | |
+| `isDeleted` | boolean | Soft delete flag (optional, defaults to false) | |
+| `deletedAt` | timestamp | When soft-deleted (optional) | |
 | `items[]` | array | Always at least 1 item | See items[] below |
 
 #### statusTimeline[] entry
@@ -298,15 +300,18 @@ Legacy statuses (backward compatibility): `pending`, `review`, `completed`, `can
 
 ### Orders Tab Classification (both admin and customer)
 
-Both admin and customer orders pages split orders into two tabs:
+Both admin and customer orders pages split orders into three tabs:
 
 | Tab | Statuses |
 |-----|----------|
-| **Live** (default) | `order_placed`, `payment_pending`, `payment_accepted`, `work_not_started`, `in_progress`, `on_hold`, `work_completed`, `sent_for_review`, `pending` (legacy), `review` (legacy) |
-| **Completed** | `customer_approved`, `project_closed`, `completed` (legacy), `cancelled` (legacy) |
+| **Open** (default) | `order_placed`, `payment_pending`, `payment_accepted`, `work_not_started`, `in_progress`, `on_hold`, `work_completed`, `sent_for_review`, `pending` (legacy), `review` (legacy) — excludes `isDeleted` orders |
+| **Completed** | `customer_approved`, `project_closed`, `completed` (legacy) — excludes `isDeleted` orders |
+| **Cancelled** | `cancelled` (legacy status) OR any order with `isDeleted === true` |
 
-- **Customer side**: Filtering via RxJS `map()` on the real-time Firestore listener (`customerOrdersListener`)
-- **Admin side**: Client-side array filtering in `filterOrders()`, combined with search and status dropdown filters
+- **Both sides**: Client-side array filtering in `filterOrders()` with search and pagination
+- **Page layout**: Welcome header with user name + 3 stat cards (Total Orders, Completed, In Progress) → Order History card with tabs, search, data table, and pagination footer
+- **Soft delete**: Admin "Cancel Order" sets `isDeleted: true` + `deletedAt` timestamp — order moves to Cancelled tab, data preserved
+- **Stats**: Exclude `isDeleted` orders from counts
 
 ---
 
@@ -450,14 +455,14 @@ service firebase.storage {
 ```
 /dashboard/admin/orders
   -> Real-time listener on all orders (allOrdersListener)
-  -> Live/Completed tabs (same classification as customer side)
-  -> Search by order number, customer name/email, address
-  -> Filter by status (dropdown: Order Placed, In Progress, On Hold, Work Completed, Project Closed)
+  -> Open/Completed/Cancelled tabs
+  -> Search by order number, customer name/email, address, report type, category
+  -> Client-side pagination (10/25/50 per page)
   -> Click order -> view details modal (with item navigation for multi-item orders)
   -> View uploaded images (thumbnail gallery) and PDFs (download links)
   -> Map shows exact lat/lng pin location
   -> Change status -> updateOrderStatus() uses arrayUnion (single write, no read) -> adds statusTimeline entry
-  -> Delete order -> deleteOrder()
+  -> Cancel order -> soft delete (sets isDeleted: true, moves to Cancelled tab)
 ```
 
 ### Message Flow (per order)
@@ -504,7 +509,7 @@ Order Detail Page
 | `addMessage(orderId, senderId, email, role, msg, attachments)` | Add message to sub-collection |
 | `getOrderMessages(orderId)` | Get all messages |
 | `orderMessagesListener(orderId)` | Real-time messages |
-| `deleteOrder(orderId)` | Delete order (messages + storage files + document) |
+| `deleteOrder(orderId)` | Soft delete order (sets `isDeleted: true` + `deletedAt` timestamp, preserves data) |
 
 ### pricing.service.ts
 | Method | Description |

@@ -106,6 +106,10 @@ export interface Order {
   completedAt?: any;
   workStartedAt?: any;
 
+  // Soft delete
+  isDeleted?: boolean;
+  deletedAt?: any;
+
   // Items (always at least one)
   items: OrderItem[];
 }
@@ -493,40 +497,22 @@ export class OrderService {
 
 
   /**
-   * Delete an order (messages, storage files, then document)
+   * Soft delete an order (marks as deleted, does not remove data)
    */
   async deleteOrder(orderId: string): Promise<void> {
     try {
-      // 1. Get order to find siteImages URLs
-      const order = await this.getOrder(orderId);
-
-      // 2. Delete messages sub-collection
-      const messages = await this.getOrderMessages(orderId);
-      for (const msg of messages) {
-        await this.firestoreService.deleteDocument(
-          `${this.ORDERS_COLLECTION}/${orderId}/${this.MESSAGES_COLLECTION}`,
-          msg.id
-        );
-      }
-
-      // 3. Delete storage files from all items
-      if (order?.items) {
-        const allUrls = order.items
-          .flatMap(item => (item.siteImages || []).map(img => img.url));
-        if (allUrls.length > 0) {
-          await this.storageService.deleteMultipleFiles(allUrls).catch(err => {
-            console.warn('Some storage files could not be deleted:', err);
-          });
-        }
-      }
-
-      // 4. Delete order document
-      await this.firestoreService.deleteDocument(
+      const timestamp = this.firestoreService.getTimestamp();
+      await this.firestoreService.updateDocument(
         this.ORDERS_COLLECTION,
-        orderId
+        orderId,
+        {
+          isDeleted: true,
+          deletedAt: timestamp,
+          updatedAt: timestamp,
+        }
       );
     } catch (error) {
-      console.error('Error deleting order:', error);
+      console.error('Error soft-deleting order:', error);
       throw error;
     }
   }
