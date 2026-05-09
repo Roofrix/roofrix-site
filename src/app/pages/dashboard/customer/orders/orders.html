@@ -101,7 +101,6 @@
           <th>Category</th>
           <th>Priority</th>
           <th>Order Total</th>
-          <th>Time</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
@@ -109,7 +108,7 @@
       <tbody>
         <tr *ngFor="let order of paginatedOrders" (click)="viewOrderDetails(order.id)" class="clickable-row">
           <td>
-            <span class="date">{{ formatDate(order.createdAt) }}</span>
+            <span class="date">{{ order.createdAt | formatDate }}</span>
           </td>
           <td>
             <span class="order-id">{{ order.orderNumber }}</span>
@@ -129,13 +128,8 @@
             <span class="order-total">${{ order.totalPrice.toFixed(2) }}</span>
           </td>
           <td>
-            <div class="time-display" [ngClass]="getTimeClass(order)">
-              <span class="countdown-timer">{{ getCountdownDisplay(order) }}</span>
-            </div>
-          </td>
-          <td>
-            <span class="status-badge" [ngClass]="getStatusClass(order.status)">
-              {{ getStatusLabel(order.status) }}
+            <span class="status-badge" [ngClass]="getStatusClass(order.isDeleted ? 'cancelled' : order.status)">
+              {{ getStatusLabel(order.isDeleted ? 'cancelled' : order.status) }}
             </span>
           </td>
           <td>
@@ -146,7 +140,7 @@
                   <circle cx="12" cy="12" r="3"></circle>
                 </svg>
               </button>
-              <button class="action-btn delete-btn" *ngIf="!order.isDeleted" (click)="openCancelModal(order); $event.stopPropagation()" title="Cancel Order">
+              <button class="action-btn delete-btn" *ngIf="canCancelOrder(order)" (click)="openCancelModal(order); $event.stopPropagation()" title="Cancel Order">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="15" y1="9" x2="9" y2="15"></line>
@@ -212,7 +206,7 @@
       </div>
       <div class="order-info cancel-info">
         <strong>{{ orderToCancel.orderNumber }}</strong>
-        <span>{{ orderToCancel.projectName }}</span>
+        <span>{{ orderToCancel.items?.[0]?.projectAddress }}</span>
       </div>
       <p class="cancel-note">The order will be moved to the Cancelled tab.</p>
     </div>

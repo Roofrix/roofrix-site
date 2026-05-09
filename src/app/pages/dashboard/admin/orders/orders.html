@@ -110,7 +110,7 @@
       <tbody>
         <tr *ngFor="let order of paginatedOrders">
           <td>
-            <span class="date">{{ formatDate(order.createdAt) }}</span>
+            <span class="date">{{ order.createdAt | formatDate }}</span>
           </td>
           <td>
             <span class="order-id">{{ order.orderNumber }}</span>
@@ -141,8 +141,8 @@
             </div>
           </td>
           <td>
-            <span class="status-badge" [ngClass]="getStatusClass(order.status)">
-              {{ getStatusLabel(order.status) }}
+            <span class="status-badge" [ngClass]="getStatusClass(order.isDeleted ? 'cancelled' : order.status)">
+              {{ getStatusLabel(order.isDeleted ? 'cancelled' : order.status) }}
             </span>
           </td>
           <td>
@@ -217,18 +217,19 @@
 
     <div class="modal-body" *ngIf="selectedOrder">
       <div class="order-info">
-        <strong>{{ selectedOrder.orderNumber }}</strong> - {{ selectedOrder.projectName }}
+        <strong>{{ selectedOrder.orderNumber }}</strong> - {{ selectedOrder.items?.[0]?.projectAddress }}
       </div>
 
       <div class="form-group">
         <label>New Status</label>
         <select [(ngModel)]="newStatus" class="form-control">
-          <option value="order_placed">Order Placed</option>
-          <option value="in_progress">In Progress</option>
-          <option value="on_hold">On Hold</option>
-          <option value="work_completed">Work Completed</option>
-          <option value="project_closed">Project Closed</option>
+          <option *ngFor="let status of getAllowedStatuses()" [value]="status">
+            {{ getStatusLabel(status) }}
+          </option>
         </select>
+        <p class="no-transitions-note" *ngIf="getAllowedStatuses().length === 0">
+          No further status transitions available.
+        </p>
       </div>
 
       <div class="form-group">
@@ -246,7 +247,7 @@
       <button class="btn-secondary" (click)="closeStatusModal()" [disabled]="updatingStatus">
         Cancel
       </button>
-      <button class="btn-primary" (click)="updateOrderStatus()" [disabled]="updatingStatus">
+      <button class="btn-primary" (click)="updateOrderStatus()" [disabled]="updatingStatus || getAllowedStatuses().length === 0">
         <span *ngIf="!updatingStatus">Update Status</span>
         <span *ngIf="updatingStatus">Updating...</span>
       </button>
@@ -442,7 +443,7 @@
       <div class="order-info delete-info">
         <strong>{{ orderToDelete.orderNumber }}</strong>
         <span>{{ orderToDelete.customerName }}</span>
-        <span>{{ orderToDelete.projectName }}</span>
+        <span>{{ orderToDelete.items?.[0]?.projectAddress }}</span>
       </div>
       <p class="delete-note">The order will be moved to the Cancelled tab.</p>
     </div>

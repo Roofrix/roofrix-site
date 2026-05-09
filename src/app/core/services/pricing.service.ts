@@ -118,7 +118,6 @@ export class PricingService {
         this.loaded = true;
       }
     } catch (err) {
-      console.error('Failed to load pricing from Firestore:', err);
     }
   }
 
@@ -142,14 +141,22 @@ export class PricingService {
     // Merge hardcoded definitions with Firestore prices
     const reportTypes: ReportType[] = this.REPORT_TYPES.map(rt => {
       const priceEntry = priceData.reportTypes.find(p => p.id === rt.id);
-      return { ...rt, price: priceEntry?.price ?? 0 };
-    });
+      if (!priceEntry || priceEntry.price == null) {
+        console.warn(`[PricingService] Missing price for report type "${rt.id}" in category "${categoryId}". Excluding from available options.`);
+        return null;
+      }
+      return { ...rt, price: priceEntry.price };
+    }).filter((rt): rt is ReportType => rt !== null);
 
     const addonDefs = this.ADDONS[categoryId] || [];
     const addons: Addon[] = addonDefs.map(addon => {
       const priceEntry = priceData.addons.find(p => p.id === addon.id);
-      return { ...addon, price: priceEntry?.price ?? 0 };
-    });
+      if (!priceEntry || priceEntry.price == null) {
+        console.warn(`[PricingService] Missing price for addon "${addon.id}" in category "${categoryId}". Excluding from available options.`);
+        return null;
+      }
+      return { ...addon, price: priceEntry.price };
+    }).filter((a): a is Addon => a !== null);
 
     return {
       category,

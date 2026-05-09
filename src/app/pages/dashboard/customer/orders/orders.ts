@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -7,21 +7,13 @@ import { filter, take } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { OrderService, Order } from '../../../../core/services/order.service';
 import { UserService } from '../../../../core/services/user.service';
-
-const COMPLETED_STATUSES = new Set([
-  'customer_approved',
-  'project_closed',
-  'completed',
-]);
-
-const CANCELLED_STATUSES = new Set([
-  'cancelled',
-]);
+import { COMPLETED_STATUSES, CANCELLED_STATUSES, STATUS_LABELS, STATUS_CLASSES } from '../../../../core/constants/order.constants';
+import { FormatDatePipe } from '../../../../shared/pipes/format-date.pipe';
 
 @Component({
   selector: 'app-customer-orders',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, FormatDatePipe],
   templateUrl: './orders.html',
   styleUrl: './orders.scss',
 })
@@ -100,9 +92,8 @@ export class CustomerOrders implements OnInit, OnDestroy {
             this.cdr.detectChanges();
           });
         },
-        error: (err) => {
+        error: () => {
           this.ngZone.run(() => {
-            console.error('Error loading orders:', err);
             this.error = 'Failed to load orders';
             this.loading = false;
             this.cdr.detectChanges();
@@ -146,7 +137,6 @@ export class CustomerOrders implements OnInit, OnDestroy {
       const query = this.searchQuery.toLowerCase();
       filtered = filtered.filter(order =>
         order.orderNumber.toLowerCase().includes(query) ||
-        (order.projectName || '').toLowerCase().includes(query) ||
         (order.items || []).some(item =>
           item.projectAddress?.toLowerCase().includes(query) ||
           item.reportType?.name?.toLowerCase().includes(query) ||
@@ -213,98 +203,12 @@ export class CustomerOrders implements OnInit, OnDestroy {
     return this.isRushOrder(order) ? 'priority-rush' : 'priority-standard';
   }
 
-  getRemainingTime(order: Order): { hours: number; minutes: number; totalMs: number } {
-    if (!order.createdAt) return { hours: 0, minutes: 0, totalMs: 0 };
-
-    const createdDate = order.createdAt.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
-    const now = new Date();
-    const elapsed = now.getTime() - createdDate.getTime();
-
-    const totalAllowedMs = this.isRushOrder(order) ? 2 * 60 * 60 * 1000 : 8 * 60 * 60 * 1000;
-    const remaining = totalAllowedMs - elapsed;
-
-    const absRemaining = Math.abs(remaining);
-    const hours = Math.floor(absRemaining / (1000 * 60 * 60));
-    const minutes = Math.floor((absRemaining % (1000 * 60 * 60)) / (1000 * 60));
-
-    return { hours, minutes, totalMs: remaining };
-  }
-
-  getCountdownDisplay(order: Order): string {
-    if (!order.createdAt) return '--';
-
-    const { hours, minutes, totalMs } = this.getRemainingTime(order);
-
-    if (totalMs <= 0) {
-      return `-${hours}h ${minutes}m`;
-    }
-    return `${hours}h ${minutes}m`;
-  }
-
-  getTimeClass(order: Order): string {
-    if (!order.createdAt) return '';
-
-    const { totalMs } = this.getRemainingTime(order);
-
-    if (totalMs <= 0) return 'time-overdue';
-    if (totalMs < 30 * 60 * 1000) return 'time-urgent';
-    if (totalMs < 60 * 60 * 1000) return 'time-warning';
-    return 'time-normal';
-  }
-
   getStatusClass(status: string): string {
-    const statusClasses: { [key: string]: string } = {
-      'order_placed': 'status-order-placed',
-      'payment_pending': 'status-payment-pending',
-      'payment_accepted': 'status-payment-accepted',
-      'work_not_started': 'status-work-not-started',
-      'in_progress': 'status-in-progress',
-      'on_hold': 'status-on-hold',
-      'work_completed': 'status-work-completed',
-      'sent_for_review': 'status-sent-for-review',
-      'customer_approved': 'status-customer-approved',
-      'project_closed': 'status-project-closed',
-      'pending': 'status-pending',
-      'review': 'status-review',
-      'completed': 'status-completed',
-      'cancelled': 'status-cancelled'
-    };
-    return statusClasses[status] || 'status-pending';
+    return STATUS_CLASSES[status] || 'status-pending';
   }
 
   getStatusLabel(status: string): string {
-    const statusLabels: { [key: string]: string } = {
-      'order_placed': 'Order Placed',
-      'payment_pending': 'Payment Pending',
-      'payment_accepted': 'Payment Accepted',
-      'work_not_started': 'Work Not Started',
-      'in_progress': 'In Progress',
-      'on_hold': 'On Hold',
-      'work_completed': 'Work Completed',
-      'sent_for_review': 'Sent for Review',
-      'customer_approved': 'Customer Approved',
-      'project_closed': 'Project Closed',
-      'pending': 'Pending',
-      'review': 'Under Review',
-      'completed': 'Completed',
-      'cancelled': 'Cancelled'
-    };
-    return statusLabels[status] || status;
-  }
-
-  formatDate(timestamp: any): string {
-    if (!timestamp) return 'N/A';
-
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      }).format(date);
-    } catch {
-      return 'N/A';
-    }
+    return STATUS_LABELS[status] || status;
   }
 
   getImageCount(order: Order): number {
@@ -322,21 +226,35 @@ export class CustomerOrders implements OnInit, OnDestroy {
     this.orderToCancel = null;
   }
 
+  /** Statuses that cannot be cancelled by the customer */
+  canCancelOrder(order: Order): boolean {
+    const nonCancellable = new Set([
+      'in_progress', 'work_completed', 'sent_for_review',
+      'customer_approved', 'project_closed', 'completed', 'cancelled'
+    ]);
+    return !order.isDeleted && !nonCancellable.has(order.status);
+  }
+
   async cancelOrder(): Promise<void> {
     if (!this.orderToCancel) return;
 
     this.cancelling = true;
     this.cdr.detectChanges();
 
+    const user = this.authService.getCurrentUser();
+
     try {
-      await this.orderService.deleteOrder(this.orderToCancel.id);
+      await this.orderService.deleteOrder(
+        this.orderToCancel.id,
+        user?.uid || 'customer',
+        user?.email || 'customer'
+      );
       this.ngZone.run(() => {
         this.cancelling = false;
         this.closeCancelModal();
         this.cdr.detectChanges();
       });
-    } catch (err) {
-      console.error('Error cancelling order:', err);
+    } catch {
       this.ngZone.run(() => {
         this.cancelling = false;
         this.closeCancelModal();
@@ -351,5 +269,10 @@ export class CustomerOrders implements OnInit, OnDestroy {
 
   createNewOrder(): void {
     this.router.navigate(['/dashboard/customer/orders/products']);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.showCancelModal) this.closeCancelModal();
   }
 }

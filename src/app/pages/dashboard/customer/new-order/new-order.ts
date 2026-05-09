@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit, NgZone, signal } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit, NgZone, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
@@ -64,6 +64,8 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
 
   private routeSubscription?: Subscription;
   private activatedRoute = inject(ActivatedRoute);
+  private addressInputListener?: () => void;
+  private autocompleteInitialized = false;
 
   searchingAddress = signal(false);
 
@@ -129,10 +131,6 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   reportTypeError = '';
   structureTypeError = '';
 
-
-  // Selected product from products page
-  selectedProduct: any = null;
-
   ngOnInit(): void {
     // Initialize form first
     this.orderForm = this.fb.group({
@@ -167,6 +165,10 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.routeSubscription) {
       this.routeSubscription.unsubscribe();
+    }
+    // Clean up native event listener to prevent memory leak
+    if (this.addressInputListener && this.addressInput?.nativeElement) {
+      this.addressInput.nativeElement.removeEventListener('input', this.addressInputListener);
     }
   }
 
@@ -283,12 +285,10 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   private initGoogleMap(): void {
     try {
       if (typeof google === 'undefined' || !google.maps) {
-        console.warn('Google Maps not loaded.');
         return;
       }
 
       if (!this.mapElement?.nativeElement) {
-        console.warn('Map element not found.');
         return;
       }
 
@@ -329,7 +329,6 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
       this.initAutocomplete();
 
     } catch (error) {
-      console.error('Error initializing Google Map:', error);
     }
   }
 
@@ -383,6 +382,7 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
 
   private initAutocomplete(): void {
     if (!this.addressInput?.nativeElement || typeof google === 'undefined') return;
+    if (this.autocompleteInitialized) return;
 
     this.autocomplete = new google.maps.places.Autocomplete(this.addressInput.nativeElement, {
       types: ['address']
@@ -407,14 +407,17 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
     });
 
     // Keep Angular form control in sync with native input changes from autocomplete
-    this.addressInput.nativeElement.addEventListener('input', () => {
+    this.addressInputListener = () => {
       setTimeout(() => {
         this.ngZone.run(() => {
           this.orderForm.patchValue({ address: this.addressInput.nativeElement.value });
           this.locationConfirmed = false;
         });
       });
-    });
+    };
+    this.addressInput.nativeElement.addEventListener('input', this.addressInputListener);
+
+    this.autocompleteInitialized = true;
   }
 
   onAddressInput(event: Event): void {
@@ -475,20 +478,27 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
       const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
       const maxSizeMB = 10;
 
+      const errors: string[] = [];
+      const validFiles: File[] = [];
+
       for (const file of files) {
         if (!allowedTypes.includes(file.type)) {
-          this.fileError = `"${file.name}" is not a supported file type. Use JPG, PNG, or PDF.`;
-          input.value = '';
-          return;
-        }
-        if (file.size > maxSizeMB * 1024 * 1024) {
-          this.fileError = `"${file.name}" exceeds the ${maxSizeMB}MB size limit.`;
-          input.value = '';
-          return;
+          errors.push(`"${file.name}" is not a supported file type`);
+        } else if (file.size > maxSizeMB * 1024 * 1024) {
+          errors.push(`"${file.name}" exceeds the ${maxSizeMB}MB size limit`);
+        } else {
+          validFiles.push(file);
         }
       }
 
-      this.selectedFiles = files;
+      if (errors.length > 0) {
+        this.fileError = errors.join('. ') + '. Use JPG, PNG, or PDF under 10MB.';
+        input.value = '';
+        this.selectedFiles = [];
+        return;
+      }
+
+      this.selectedFiles = validFiles;
     }
   }
 
@@ -517,10 +527,6 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onSubmit(): void {
-    console.log('[NEW-ORDER] onSubmit called');
-    console.log('[NEW-ORDER] Form valid:', this.orderForm.valid);
-    console.log('[NEW-ORDER] Location confirmed:', this.locationConfirmed);
-    console.log('[NEW-ORDER] Selected files:', this.selectedFiles.length);
     // Clear previous errors
     this.errorMessage = '';
     this.locationError = '';
@@ -614,9 +620,7 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
     };
 
     sessionStorage.setItem('orderData', JSON.stringify(orderData));
-    console.log('[NEW-ORDER] Files to transfer:', this.selectedFiles.length, this.selectedFiles);
     this.fileTransferService.setFiles(this.selectedFiles);
-    console.log('[NEW-ORDER] Files in service after set:', this.fileTransferService.getFiles().length);
     this.router.navigate(['/dashboard/customer/order-review']);
   }
 
@@ -687,13 +691,8 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
       });
     });
 
-    // Generate project name from address
-    const addressParts = this.selectedLocation!.address.split(',');
-    const projectName = addressParts[0] || 'Rooftop Project';
-
     // Add to cart
     const cartItemId = this.cartService.addToCart({
-      projectName: projectName,
       projectAddress: this.selectedLocation!.address,
       location: { lat: this.selectedLocation!.lat, lng: this.selectedLocation!.lng },
       reportType: {
@@ -804,5 +803,10 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
 
   cancel(): void {
     this.router.navigate(['/dashboard/customer/orders']);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.previewUrl) this.closeSamplePreview();
   }
 }

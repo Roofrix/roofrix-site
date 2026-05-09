@@ -94,9 +94,7 @@ export class AuthService {
           });
 
           // Send verification email
-          console.log('Sending verification email to:', credential.user.email);
           await sendEmailVerification(credential.user);
-          console.log('Verification email sent successfully!');
 
           // Sign out so user can't access protected routes before verifying
           await signOut(this.auth);
@@ -104,7 +102,6 @@ export class AuthService {
           this.loadingSubject.next(false);
           return { success: true, uid: credential.user.uid };
         } catch (firestoreError) {
-          console.error('Error creating user profile:', firestoreError);
           this.loadingSubject.next(false);
           // Auth succeeded but Firestore profile creation failed
           return {
@@ -115,7 +112,6 @@ export class AuthService {
         }
       }),
       catchError((error) => {
-        console.error('Firebase Auth Error:', error.code, error.message);
         this.loadingSubject.next(false);
         const errorMessage = getFirebaseErrorMessage(error.code);
         return of({ success: false, error: errorMessage });
@@ -145,16 +141,12 @@ export class AuthService {
           this.loadingSubject.next(false);
           return { success: true };
         } catch (firestoreError) {
-          console.error('Error updating last login:', firestoreError);
-          // Sign in succeeded, just log the error
+          // Sign in succeeded, non-critical error
           this.loadingSubject.next(false);
           return { success: true };
         }
       }),
       catchError((error: any) => {
-        console.error('Firebase Sign In Error:', error);
-        console.error('Error code:', error?.code);
-        console.error('Error message:', error?.message);
         this.loadingSubject.next(false);
         const errorMessage = getFirebaseErrorMessage(error?.code || 'unknown');
         return of({ success: false, error: errorMessage });
@@ -198,9 +190,7 @@ export class AuthService {
   resendVerificationEmail(email: string, password: string): Observable<{ success: boolean; error?: string }> {
     return from(signInWithEmailAndPassword(this.auth, email.trim(), password)).pipe(
       switchMap(async (credential: UserCredential) => {
-        console.log('Resending verification email to:', credential.user.email);
         await sendEmailVerification(credential.user);
-        console.log('Verification email resent successfully!');
         await signOut(this.auth);
         return { success: true };
       }),

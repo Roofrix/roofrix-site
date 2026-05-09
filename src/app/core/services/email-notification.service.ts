@@ -10,14 +10,14 @@ const EMAILJS_CONFIG = {
 @Injectable({ providedIn: 'root' })
 export class EmailNotificationService {
 
-  sendNewOrderNotification(params: {
+  async sendNewOrderNotification(params: {
     orderNumber: string;
     customerName: string;
     customerEmail: string;
     totalPrice: number;
     itemCount: number;
     projectAddress: string;
-  }): void {
+  }): Promise<{ success: boolean; error?: string }> {
     const templateParams = {
       order_number: params.orderNumber,
       customer_name: params.customerName,
@@ -27,14 +27,16 @@ export class EmailNotificationService {
       project_address: params.projectAddress
     };
 
-    emailjs.send(
-      EMAILJS_CONFIG.serviceId,
-      EMAILJS_CONFIG.templateId,
-      templateParams,
-      EMAILJS_CONFIG.publicKey
-    ).then(
-      () => console.log('[EMAIL] New order notification sent successfully'),
-      (error) => console.error('[EMAIL] Failed to send order notification:', error)
-    );
+    try {
+      await emailjs.send(
+        EMAILJS_CONFIG.serviceId,
+        EMAILJS_CONFIG.templateId,
+        templateParams,
+        EMAILJS_CONFIG.publicKey
+      );
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.text || 'Failed to send notification email' };
+    }
   }
 }

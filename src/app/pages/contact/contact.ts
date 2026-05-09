@@ -35,6 +35,7 @@ export class Contact {
 
   onSubmit(): void {
     if (this.contactForm.invalid) {
+      this.contactForm.markAllAsTouched();
       return;
     }
 
@@ -61,8 +62,7 @@ export class Contact {
       this.contactForm.reset();
       setTimeout(() => this.submitted = false, 5000);
     })
-    .catch((error) => {
-      console.error('EmailJS Error:', error);
+    .catch(() => {
       this.loading = false;
       this.errorMessage = 'Failed to send message. Please try again later.';
     });

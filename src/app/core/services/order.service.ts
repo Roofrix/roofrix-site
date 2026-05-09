@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { FirestoreService } from './firestore.service';
 import { StorageService } from './storage.service';
 import { Observable } from 'rxjs';
+import { isValidStatusTransition, getAllowedNextStatuses } from '../constants/order.constants';
 
 export type OrderStatus =
   | 'order_placed'
@@ -60,7 +61,6 @@ export interface SiteImage {
 }
 
 export interface OrderItem {
-  projectName: string;
   projectAddress: string;
   location: { lat: number; lng: number };
   reportType: OrderReportType;
@@ -84,7 +84,6 @@ export interface OrderItem {
 export interface Order {
   id: string;
   orderNumber: string;
-  projectName: string;
 
   // Customer info
   customerId: string;
@@ -136,7 +135,6 @@ export interface OrderMessage {
   attachments?: string[]; // Firebase Storage URLs
   createdAt: any;
   isRead: boolean;
-  readBy: string[]; // Array of user IDs who have read the message
 }
 
 @Injectable({
@@ -184,15 +182,8 @@ export class OrderService {
         ? new Date(Date.now() + 2 * 60 * 60 * 1000)
         : null;
 
-      // Generate project name
-      const firstItem = data.items[0];
-      const projectName = data.items.length > 1
-        ? `${data.items.length} Projects - ${firstItem.projectName}`
-        : `${firstItem.reportType.name} - ${firstItem.projectAddress}`;
-
       const order: Omit<Order, 'id'> = {
         orderNumber,
-        projectName,
         customerId: data.customerId,
         customerEmail: data.customerEmail,
         customerName: data.customerName,
@@ -214,7 +205,6 @@ export class OrderService {
 
       return orderNumber;
     } catch (error) {
-      console.error('Error creating order:', error);
       throw error;
     }
   }
@@ -229,7 +219,6 @@ export class OrderService {
         orderId
       );
     } catch (error) {
-      console.error('Error getting order:', error);
       throw error;
     }
   }
@@ -249,6 +238,20 @@ export class OrderService {
     notes?: string
   ): Promise<void> {
     try {
+      // Validate status transition
+      const currentOrder = await this.getOrder(orderId);
+      if (!currentOrder) {
+        throw new Error(`Order ${orderId} not found`);
+      }
+
+      if (!isValidStatusTransition(currentOrder.status, newStatus)) {
+        const allowed = getAllowedNextStatuses(currentOrder.status);
+        throw new Error(
+          `Invalid status transition from "${currentOrder.status}" to "${newStatus}". ` +
+          `Allowed transitions: ${allowed.length > 0 ? allowed.join(', ') : 'none (terminal status)'}`
+        );
+      }
+
       const timestamp = this.firestoreService.getTimestamp();
       const { arrayUnion } = this.firestoreService.getArrayHelpers();
 
@@ -262,10 +265,10 @@ export class OrderService {
       };
 
       // Build update data — use arrayUnion to avoid an extra read
+      // Note: updatedAt is auto-appended by firestoreService.updateDocument
       const updateData: any = {
         status: newStatus,
         statusTimeline: arrayUnion(timelineEntry),
-        updatedAt: timestamp
       };
 
       // Set workStartedAt when work begins
@@ -283,7 +286,6 @@ export class OrderService {
         updateData
       );
     } catch (error) {
-      console.error('Error updating order status:', error);
       throw error;
     }
   }
@@ -296,7 +298,6 @@ export class OrderService {
       const order = await this.getOrder(orderId);
       return order?.statusTimeline || [];
     } catch (error) {
-      console.error('Error getting status timeline:', error);
       throw error;
     }
   }
@@ -312,7 +313,6 @@ export class OrderService {
         [where('customerId', '==', customerId), orderBy('createdAt', 'desc')]
       );
     } catch (error) {
-      console.error('Error getting customer orders:', error);
       throw error;
     }
   }
@@ -328,7 +328,6 @@ export class OrderService {
         [orderBy('createdAt', 'desc'), limit(pageSize)]
       );
     } catch (error) {
-      console.error('Error getting all orders:', error);
       throw error;
     }
   }
@@ -359,7 +358,6 @@ export class OrderService {
         hasMore
       };
     } catch (error) {
-      console.error('Error getting paginated orders:', error);
       throw error;
     }
   }
@@ -376,7 +374,6 @@ export class OrderService {
       );
       return orders.length;
     } catch (error) {
-      console.error('Error getting order count:', error);
       return 0;
     }
   }
@@ -403,7 +400,6 @@ export class OrderService {
         [where('status', '==', status), orderBy('createdAt', 'desc')]
       );
     } catch (error) {
-      console.error('Error getting orders by status:', error);
       throw error;
     }
   }
@@ -452,8 +448,7 @@ export class OrderService {
         message,
         attachments: attachments || [],
         createdAt: timestamp,
-        isRead: false,
-        readBy: [senderId]
+        isRead: false
       };
 
       await this.firestoreService.setDocument<Omit<OrderMessage, 'id'>>(
@@ -462,7 +457,6 @@ export class OrderService {
         messageData
       );
     } catch (error) {
-      console.error('Error adding message:', error);
       throw error;
     }
   }
@@ -478,7 +472,6 @@ export class OrderService {
         [orderBy('createdAt', 'asc')]
       );
     } catch (error) {
-      console.error('Error getting order messages:', error);
       throw error;
     }
   }
@@ -497,22 +490,37 @@ export class OrderService {
 
 
   /**
-   * Soft delete an order (marks as deleted, does not remove data)
+   * Soft delete / cancel an order.
+   * Sets status to 'cancelled', adds a timeline entry, and marks as deleted.
    */
-  async deleteOrder(orderId: string): Promise<void> {
+  async deleteOrder(
+    orderId: string,
+    cancelledBy?: string,
+    cancelledByEmail?: string
+  ): Promise<void> {
     try {
       const timestamp = this.firestoreService.getTimestamp();
+      const { arrayUnion } = this.firestoreService.getArrayHelpers();
+
+      const timelineEntry: StatusTimelineEntry = {
+        status: 'cancelled',
+        changedAt: timestamp,
+        changedBy: cancelledBy || 'system',
+        changedByEmail: cancelledByEmail || 'system',
+        notes: 'Order cancelled'
+      };
+
       await this.firestoreService.updateDocument(
         this.ORDERS_COLLECTION,
         orderId,
         {
+          status: 'cancelled',
+          statusTimeline: arrayUnion(timelineEntry),
           isDeleted: true,
           deletedAt: timestamp,
-          updatedAt: timestamp,
         }
       );
     } catch (error) {
-      console.error('Error soft-deleting order:', error);
       throw error;
     }
   }

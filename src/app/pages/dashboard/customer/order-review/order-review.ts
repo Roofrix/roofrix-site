@@ -41,6 +41,7 @@ export class OrderReview implements OnInit {
   uploadingFiles = false;
   uploadProgress = '';
   errorMessage = '';
+  uploadWarning = '';
 
   ngOnInit(): void {
     // Check if coming from cart checkout
@@ -50,10 +51,14 @@ export class OrderReview implements OnInit {
       // Cart checkout flow
       const cartData = sessionStorage.getItem('cartCheckout');
       if (cartData) {
-        const parsed = JSON.parse(cartData);
-        this.cartItems = parsed.items || [];
-        this.cartTotal = parsed.totalPrice || 0;
-        this.isCartCheckout = true;
+        try {
+          const parsed = JSON.parse(cartData);
+          this.cartItems = parsed.items || [];
+          this.cartTotal = parsed.totalPrice || 0;
+          this.isCartCheckout = true;
+        } catch {
+          this.router.navigate(['/dashboard/customer/cart']);
+        }
       } else {
         this.router.navigate(['/dashboard/customer/cart']);
       }
@@ -61,7 +66,11 @@ export class OrderReview implements OnInit {
       // Single item checkout flow
       const stored = sessionStorage.getItem('orderData');
       if (stored) {
-        this.orderData = JSON.parse(stored);
+        try {
+          this.orderData = JSON.parse(stored);
+        } catch {
+          this.router.navigate(['/dashboard/customer/orders']);
+        }
       } else {
         this.router.navigate(['/dashboard/customer/orders']);
       }
@@ -97,7 +106,6 @@ export class OrderReview implements OnInit {
         await this.createSingleOrder(user);
       }
     } catch (error) {
-      console.error('Error creating order:', error);
       this.ngZone.run(() => {
         this.errorMessage = 'Failed to create order. Please try again.';
         this.loading = false;
@@ -107,13 +115,23 @@ export class OrderReview implements OnInit {
   }
 
   private async createSingleOrder(user: any): Promise<void> {
+    // Validate required data
+    if (!this.orderData.location?.lat || !this.orderData.location?.lng) {
+      this.errorMessage = 'Invalid location data. Please go back and confirm the location.';
+      this.loading = false;
+      return;
+    }
+    if (!this.orderData.reportType?.id || !this.orderData.reportType?.price) {
+      this.errorMessage = 'Invalid report type. Please go back and select a report type.';
+      this.loading = false;
+      return;
+    }
+
     // Build single item from order data
-    const address = this.orderData.location?.address || this.orderData.address;
-    const addressParts = address.split(',');
+    const address = this.orderData.location.address || this.orderData.address;
     const item: OrderItem = {
-      projectName: addressParts[0] || 'Rooftop Project',
       projectAddress: address,
-      location: this.orderData.location ? { lat: this.orderData.location.lat, lng: this.orderData.location.lng } : { lat: 0, lng: 0 },
+      location: { lat: this.orderData.location.lat, lng: this.orderData.location.lng },
       reportType: this.orderData.reportType,
       addons: this.orderData.addons || [],
       structureCategory: this.orderData.structureCategory || 'basic',
@@ -151,7 +169,6 @@ export class OrderReview implements OnInit {
 
     // Upload files to Firebase Storage if any
     const files = this.fileTransferService.getFiles();
-    console.log('[ORDER-REVIEW] Files from transfer service:', files.length, files);
     if (files.length > 0) {
       this.ngZone.run(() => {
         this.uploadingFiles = true;
@@ -166,20 +183,18 @@ export class OrderReview implements OnInit {
         item.siteImages = downloadURLs.map((url, i) => ({ url, name: files[i].name }));
         await this.orderService.updateOrder(createdOrderId, { items: [item] });
       } catch (uploadError) {
-        console.error('[ORDER-REVIEW] File upload failed:', uploadError);
-        // Order is created, just log the upload error — don't block confirmation
+        this.uploadWarning = 'Your order was placed, but some files failed to upload. Please contact support if needed.';
       }
 
     }
 
     // Clear all session data and files
     this.fileTransferService.clear();
-    sessionStorage.removeItem('selectedProduct');
     sessionStorage.removeItem('orderData');
     sessionStorage.removeItem('selectedStructureType');
 
-    // Send email notification to admin (fire-and-forget)
-    this.emailNotificationService.sendNewOrderNotification({
+    // Send email notification to admin
+    const emailResult = await this.emailNotificationService.sendNewOrderNotification({
       orderNumber: this.orderNumber,
       customerName: orderData.customerName,
       customerEmail: orderData.customerEmail,
@@ -187,6 +202,9 @@ export class OrderReview implements OnInit {
       itemCount: 1,
       projectAddress: item.projectAddress
     });
+    if (!emailResult.success && !this.uploadWarning) {
+      this.uploadWarning = 'Order placed, but the admin notification email could not be sent.';
+    }
 
     this.ngZone.run(() => {
       this.loading = false;
@@ -202,7 +220,6 @@ export class OrderReview implements OnInit {
   private async createCartOrder(user: any): Promise<void> {
     // Build items array for the order
     const orderItems: OrderItem[] = this.cartItems.map(item => ({
-      projectName: item.projectName,
       projectAddress: item.projectAddress,
       location: item.location,
       reportType: item.reportType,
@@ -262,7 +279,7 @@ export class OrderReview implements OnInit {
             );
             orderItems[i].siteImages = urls.map((url, j) => ({ url, name: itemFiles[j].name }));
           } catch (uploadError) {
-            console.error(`[ORDER-REVIEW] File upload failed for item ${i + 1}:`, uploadError);
+            this.uploadWarning = 'Your order was placed, but some files failed to upload. Please contact support if needed.';
           }
         }
       }
@@ -270,7 +287,9 @@ export class OrderReview implements OnInit {
       try {
         await this.orderService.updateOrder(createdOrderId, { items: orderItems });
       } catch (err) {
-        console.error('[ORDER-REVIEW] Failed to update order with file URLs:', err);
+        if (!this.uploadWarning) {
+          this.uploadWarning = 'Order placed, but file references could not be saved. Please contact support.';
+        }
       }
 
     }
@@ -282,9 +301,9 @@ export class OrderReview implements OnInit {
     sessionStorage.removeItem('orderData');
     sessionStorage.removeItem('selectedStructureType');
 
-    // Send email notification to admin (fire-and-forget)
+    // Send email notification to admin
     const firstItemAddress = orderItems[0]?.projectAddress || 'Multiple addresses';
-    this.emailNotificationService.sendNewOrderNotification({
+    const emailResult = await this.emailNotificationService.sendNewOrderNotification({
       orderNumber: this.orderNumber,
       customerName: orderData.customerName,
       customerEmail: orderData.customerEmail,
@@ -292,6 +311,9 @@ export class OrderReview implements OnInit {
       itemCount: orderItems.length,
       projectAddress: firstItemAddress
     });
+    if (!emailResult.success && !this.uploadWarning) {
+      this.uploadWarning = 'Order placed, but the admin notification email could not be sent.';
+    }
 
     this.ngZone.run(() => {
       this.loading = false;

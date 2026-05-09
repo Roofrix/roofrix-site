@@ -3,11 +3,13 @@ import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { OrderService, Order } from '../../../../../core/services/order.service';
+import { STATUS_LABELS, STATUS_CLASSES } from '../../../../../core/constants/order.constants';
+import { FormatDatePipe } from '../../../../../shared/pipes/format-date.pipe';
 
 @Component({
   selector: 'app-order-detail',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormatDatePipe],
   templateUrl: './order-detail.html',
   styleUrl: './order-detail.scss',
 })
@@ -52,8 +54,7 @@ export class OrderDetail implements OnInit, OnDestroy {
           this.cdr.detectChanges();
         });
       },
-      error: (err) => {
-        console.error('Error loading order:', err);
+      error: () => {
         this.ngZone.run(() => {
           this.error = 'Failed to load order details';
           this.loading = false;
@@ -68,78 +69,11 @@ export class OrderDetail implements OnInit, OnDestroy {
   }
 
   getStatusClass(status: string): string {
-    const statusClasses: { [key: string]: string } = {
-      'order_placed': 'status-order-placed',
-      'payment_pending': 'status-payment-pending',
-      'payment_accepted': 'status-payment-accepted',
-      'work_not_started': 'status-work-not-started',
-      'in_progress': 'status-in-progress',
-      'on_hold': 'status-on-hold',
-      'work_completed': 'status-work-completed',
-      'sent_for_review': 'status-sent-for-review',
-      'customer_approved': 'status-customer-approved',
-      'project_closed': 'status-project-closed',
-      // Legacy statuses
-      'pending': 'status-pending',
-      'review': 'status-review',
-      'completed': 'status-completed',
-      'cancelled': 'status-cancelled'
-    };
-    return statusClasses[status] || 'status-pending';
+    return STATUS_CLASSES[status] || 'status-pending';
   }
 
   getStatusLabel(status: string): string {
-    const statusLabels: { [key: string]: string } = {
-      'order_placed': 'Order Placed',
-      'payment_pending': 'Payment Pending',
-      'payment_accepted': 'Payment Accepted',
-      'work_not_started': 'Work Not Started',
-      'in_progress': 'In Progress',
-      'on_hold': 'On Hold',
-      'work_completed': 'Work Completed',
-      'sent_for_review': 'Sent for Review',
-      'customer_approved': 'Customer Approved',
-      'project_closed': 'Project Closed',
-      // Legacy statuses
-      'pending': 'Pending',
-      'review': 'Under Review',
-      'completed': 'Completed',
-      'cancelled': 'Cancelled'
-    };
-    return statusLabels[status] || status;
-  }
-
-  formatDate(timestamp: any): string {
-    if (!timestamp) return 'N/A';
-
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(date);
-    } catch {
-      return 'N/A';
-    }
-  }
-
-  formatShortDate(timestamp: any): string {
-    if (!timestamp) return 'N/A';
-
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(date);
-    } catch {
-      return 'N/A';
-    }
+    return STATUS_LABELS[status] || status;
   }
 
   getPriorityClass(priority: string): string {

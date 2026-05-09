@@ -53,7 +53,6 @@ export class UserService {
         userProfile
       );
     } catch (error) {
-      console.error('Error creating user profile:', error);
       throw error;
     }
   }
@@ -68,7 +67,6 @@ export class UserService {
         uid
       );
     } catch (error) {
-      console.error('Error getting user profile:', error);
       throw error;
     }
   }
@@ -90,7 +88,6 @@ export class UserService {
         updateData
       );
     } catch (error) {
-      console.error('Error updating user profile:', error);
       throw error;
     }
   }
@@ -106,7 +103,6 @@ export class UserService {
         { lastLoginAt: this.firestoreService.getTimestamp() }
       );
     } catch (error) {
-      console.error('Error updating last login:', error);
       throw error;
     }
   }
@@ -130,7 +126,6 @@ export class UserService {
         this.USERS_COLLECTION
       );
     } catch (error) {
-      console.error('Error getting all users:', error);
       throw error;
     }
   }
@@ -146,7 +141,6 @@ export class UserService {
         [where('role', '==', role), where('isActive', '==', true)]
       );
     } catch (error) {
-      console.error('Error getting users by role:', error);
       throw error;
     }
   }
@@ -162,7 +156,6 @@ export class UserService {
         { isActive: false }
       );
     } catch (error) {
-      console.error('Error deactivating user:', error);
       throw error;
     }
   }
@@ -178,7 +171,6 @@ export class UserService {
         { isActive: true }
       );
     } catch (error) {
-      console.error('Error activating user:', error);
       throw error;
     }
   }

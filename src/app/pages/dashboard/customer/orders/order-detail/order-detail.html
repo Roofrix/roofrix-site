@@ -33,7 +33,7 @@
       <div class="order-title-row">
         <div>
           <h1 class="order-number">{{ order.orderNumber }}</h1>
-          <p class="order-date">Placed on {{ formatDate(order.createdAt) }}</p>
+          <p class="order-date">Placed on {{ order.createdAt | formatDate:'long' }}</p>
         </div>
         <span class="status-badge" [ngClass]="getStatusClass(order.status)">
           {{ getStatusLabel(order.status) }}
@@ -60,7 +60,7 @@
         <div class="order-item-card" *ngFor="let item of order.items; let i = index">
           <div class="item-card-header">
             <div class="item-number">{{ i + 1 }}</div>
-            <h4>{{ item.projectName }}</h4>
+            <h4>{{ item.projectAddress }}</h4>
           </div>
 
           <div class="order-details">
@@ -155,7 +155,7 @@
                   {{ getStatusLabel(entry.status) }}
                 </span>
               </div>
-              <p class="timeline-date">{{ formatShortDate(entry.changedAt) }}</p>
+              <p class="timeline-date">{{ entry.changedAt | formatDate:'time' }}</p>
               <p class="timeline-notes" *ngIf="entry.notes">{{ entry.notes }}</p>
               <p class="timeline-by">By: {{ entry.changedByEmail }}</p>
             </div>

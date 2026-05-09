@@ -155,8 +155,7 @@
           <div class="cart-item-card" *ngFor="let item of cartItems; let i = index">
             <div class="item-number">{{ i + 1 }}</div>
             <div class="item-content">
-              <h4>{{ item.projectName }}</h4>
-              <p class="item-address">{{ item.projectAddress }}</p>
+              <h4>{{ item.projectAddress }}</h4>
               <div class="item-details-row">
                 <span class="detail-tag">{{ item.structureCategoryName }}</span>
                 <span class="detail-tag">{{ item.reportType.name }}</span>
@@ -219,6 +218,15 @@
         </div>
         <p class="order-number">Order Number: <strong>{{ orderNumber }}</strong></p>
         <p class="thank-you">We will process your order shortly.</p>
+
+        <div class="alert alert-warning" *ngIf="uploadWarning">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <span>{{ uploadWarning }}</span>
+        </div>
 
         <div class="confirmation-actions">
           <button class="btn-primary" (click)="goToOrderDetails()">View Order Details</button>

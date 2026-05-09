@@ -40,20 +40,25 @@ src/
         role.guard.ts              # adminGuard, customerGuard, dashboardGuard
       models/
         user.interface.ts
+      constants/
+        order.constants.ts         # Shared status labels, CSS classes, transition validation, filter sets
       services/
         auth.service.ts            # Firebase Auth (signup, signin, signout, email verification, password reset) + loads pricing on login
         user.service.ts            # User profiles CRUD
-        order.service.ts           # Orders CRUD, status updates, messages, file URLs
+        order.service.ts           # Orders CRUD, status updates with transition validation, messages, file URLs
         cart.service.ts            # In-memory + sessionStorage cart
         storage.service.ts         # Firebase Storage uploads
         file-transfer.service.ts   # In-memory file passing between pages (per cart item)
-        pricing.service.ts         # Hardcoded definitions + Firestore prices (loaded on login)
+        pricing.service.ts         # Hardcoded definitions + Firestore prices (loaded on login, excludes items with missing prices)
         firestore.service.ts       # Generic Firestore wrapper + atomic counter
+        email-notification.service.ts # EmailJS admin notifications (async, returns success/failure)
     layouts/
       public-layout/               # Wrapper for public pages (uses shared navbar + footer)
       dashboard-layout/            # Wrapper for dashboard pages (uses shared navbar, no footer)
     shared/
       navbar/                      # Shared navbar for all pages (nav links, order menu, cart, user menu, mobile sign out)
+      pipes/
+        format-date.pipe.ts        # Shared FormatDatePipe (short, long, datetime, time formats)
     pages/
       home/                        # Landing page with "Order Now" dropdown
       features/
@@ -155,8 +160,8 @@ Firebase Storage
 | `phoneNumber` | string | Optional |
 | `company` | string | Optional |
 | `createdAt` | timestamp | Account created |
-| `updatedAt` | timestamp | Last profile update |
-| `lastLoginAt` | timestamp | Last login |
+| `updatedAt` | timestamp | Last profile update (auto-set by firestoreService) |
+| `lastLoginAt` | timestamp | Updated on each login |
 | `isActive` | boolean | Account active status |
 
 **Links to**: Referenced by `orders.customerId`, `orders.statusTimeline[].changedBy`, `messages.senderId`
@@ -235,7 +240,6 @@ Per-item data — all project-specific details live here:
 | `attachments[]` | string[] | Storage URLs | `Storage: {uid}/{orderId}/*` |
 | `createdAt` | timestamp | | |
 | `isRead` | boolean | | |
-| `readBy[]` | string[] | UIDs who read it | `users/{uid}` |
 
 ---
 
@@ -298,20 +302,41 @@ project_closed
 
 Legacy statuses (backward compatibility): `pending`, `review`, `completed`, `cancelled`
 
+### Status Transition Validation
+
+Status changes are validated server-side via `isValidStatusTransition()` in `order.constants.ts`. Invalid transitions throw an error with a descriptive message. The admin status modal dropdown only shows valid next statuses, and the "Update Status" button is disabled for terminal statuses.
+
+**Terminal statuses** (no further transitions): `project_closed`, `cancelled`, `completed`
+
+**Valid transitions:**
+| From | Allowed To |
+|------|-----------|
+| `order_placed` | `payment_pending`, `payment_accepted`, `work_not_started`, `in_progress`, `cancelled` |
+| `payment_pending` | `payment_accepted`, `cancelled` |
+| `payment_accepted` | `work_not_started`, `in_progress`, `cancelled` |
+| `work_not_started` | `in_progress`, `on_hold`, `cancelled` |
+| `in_progress` | `on_hold`, `work_completed`, `cancelled` |
+| `on_hold` | `in_progress`, `cancelled` |
+| `work_completed` | `sent_for_review`, `in_progress`, `cancelled` |
+| `sent_for_review` | `customer_approved`, `in_progress`, `cancelled` |
+| `customer_approved` | `project_closed` |
+
 ### Orders Tab Classification (both admin and customer)
 
-Both admin and customer orders pages split orders into three tabs:
+Both admin and customer orders pages split orders into three tabs using shared constants from `order.constants.ts`:
 
 | Tab | Statuses |
 |-----|----------|
 | **Open** (default) | `order_placed`, `payment_pending`, `payment_accepted`, `work_not_started`, `in_progress`, `on_hold`, `work_completed`, `sent_for_review`, `pending` (legacy), `review` (legacy) — excludes `isDeleted` orders |
 | **Completed** | `customer_approved`, `project_closed`, `completed` (legacy) — excludes `isDeleted` orders |
-| **Cancelled** | `cancelled` (legacy status) OR any order with `isDeleted === true` |
+| **Cancelled** | `cancelled` status OR any order with `isDeleted === true` |
 
 - **Both sides**: Client-side array filtering in `filterOrders()` with search and pagination
 - **Page layout**: Welcome header with user name + 3 stat cards (Total Orders, Completed, In Progress) → Order History card with tabs, search, data table, and pagination footer
-- **Soft delete**: Admin "Cancel Order" sets `isDeleted: true` + `deletedAt` timestamp — order moves to Cancelled tab, data preserved
+- **Cancel order**: Sets `status: 'cancelled'` + adds timeline entry + sets `isDeleted: true` + `deletedAt` — order moves to Cancelled tab, data preserved
+- **Customer cancellation**: Only allowed for early statuses (`order_placed`, `payment_pending`, `payment_accepted`, `work_not_started`). Cancel button hidden for in-progress/completed orders.
 - **Stats**: Exclude `isDeleted` orders from counts
+- **Keyboard**: All modals close on Escape key
 
 ---
 
@@ -415,13 +440,15 @@ service firebase.storage {
 /dashboard/customer/order-review
   -> Display order summary with pricing breakdown
   -> Click "Confirm Order"
-  -> 1. Wrap form data into items[1] (single item)
-  -> 2. Generate sequential order number (atomic counter: system/counters.orderNumber)
-  -> 3. Create order document in Firestore orders/{orderId} with items[]
-  -> 4. Upload files to Storage: {uid}/{orderId}/{file}
-  -> 5. Store URLs on items[0].siteImages[] + top-level siteImages[]
-  -> 6. Show confirmation with order number
-  -> 7. Clear all: sessionStorage (orderData, selectedProduct, selectedStructureType) + FileTransferService
+  -> 1. Validate location (lat/lng exist) and reportType (id + price exist)
+  -> 2. Wrap form data into items[1] (single item)
+  -> 3. Generate sequential order number (atomic counter: system/counters.orderNumber)
+  -> 4. Create order document in Firestore orders/{orderId} with items[]
+  -> 5. Upload files to Storage: {uid}/{orderId}/{file}
+  -> 6. Store URLs on items[0].siteImages[] (warning shown if upload fails)
+  -> 7. Send admin email notification (warning shown if email fails)
+  -> 8. Show confirmation with order number
+  -> 9. Clear all: sessionStorage (orderData, selectedStructureType) + FileTransferService
 ```
 
 ### Cart Order Flow (Add to Cart)
@@ -445,8 +472,8 @@ service firebase.storage {
   -> Click "Confirm Order"
   -> 1. Create order with items[] array in Firestore
   -> 2. Upload files PER CART ITEM to Storage: {uid}/{orderId}/{file}
-  -> 3. Store per-item URLs on items[].siteImages[]
-  -> 4. Combine all URLs into top-level siteImages[]
+  -> 3. Store per-item URLs on items[].siteImages[] (warning shown if any upload fails)
+  -> 4. Send admin email notification (warning shown if email fails)
   -> 5. Show confirmation
   -> 6. Clear all: CartService + FileTransferService + sessionStorage (cartCheckout, orderData, selectedStructureType)
 ```
@@ -461,8 +488,10 @@ service firebase.storage {
   -> Click order -> view details modal (with item navigation for multi-item orders)
   -> View uploaded images (thumbnail gallery) and PDFs (download links)
   -> Map shows exact lat/lng pin location
-  -> Change status -> updateOrderStatus() uses arrayUnion (single write, no read) -> adds statusTimeline entry
-  -> Cancel order -> soft delete (sets isDeleted: true, moves to Cancelled tab)
+  -> Change status -> dropdown shows only valid next statuses, button disabled for terminal statuses
+     -> updateOrderStatus() validates transition, uses arrayUnion -> adds statusTimeline entry
+  -> Cancel order -> sets status='cancelled' + timeline entry + isDeleted=true (moves to Cancelled tab)
+  -> All modals close on Escape key
 ```
 
 ### Message Flow (per order)
@@ -500,7 +529,7 @@ Order Detail Page
 | `createOrder(data, createdBy)` | Create order with sequential number, returns orderId |
 | `getOrder(orderId)` | Get single order |
 | `updateOrder(orderId, data)` | Partial update |
-| `updateOrderStatus(orderId, status, by, email, notes)` | Update status + timeline (uses arrayUnion, single write) |
+| `updateOrderStatus(orderId, status, by, email, notes)` | Validates transition via `isValidStatusTransition()`, then updates status + timeline (arrayUnion). Throws if transition is invalid. |
 | `getOrdersByCustomer(customerId)` | Query by customer |
 | `getAllOrders()` | All orders (admin) |
 | `orderListener(orderId)` | Real-time single order |
@@ -509,7 +538,22 @@ Order Detail Page
 | `addMessage(orderId, senderId, email, role, msg, attachments)` | Add message to sub-collection |
 | `getOrderMessages(orderId)` | Get all messages |
 | `orderMessagesListener(orderId)` | Real-time messages |
-| `deleteOrder(orderId)` | Soft delete order (sets `isDeleted: true` + `deletedAt` timestamp, preserves data) |
+| `deleteOrder(orderId, cancelledBy?, cancelledByEmail?)` | Cancel + soft delete: sets `status: 'cancelled'`, adds timeline entry, sets `isDeleted: true` + `deletedAt` |
+
+### email-notification.service.ts
+| Method | Description |
+|--------|-------------|
+| `sendNewOrderNotification(params)` | Sends admin email via EmailJS. Returns `Promise<{ success, error? }>`. Non-blocking — order completes even if email fails. |
+
+### order.constants.ts (shared constants)
+| Export | Description |
+|--------|-------------|
+| `COMPLETED_STATUSES` | Set of statuses for "Completed" tab filter |
+| `CANCELLED_STATUSES` | Set of statuses for "Cancelled" tab filter |
+| `STATUS_LABELS` | Human-readable labels for all statuses |
+| `STATUS_CLASSES` | CSS class names for all statuses |
+| `isValidStatusTransition(from, to)` | Returns boolean — checks if transition is allowed |
+| `getAllowedNextStatuses(status)` | Returns array of valid next statuses |
 
 ### pricing.service.ts
 | Method | Description |
@@ -518,7 +562,7 @@ Order Detail Page
 | `isLoaded()` | Check if prices have been fetched |
 | `getStructureCategories()` | All structure categories (hardcoded) |
 | `getStructureCategory(id)` | Single category by ID |
-| `getPricingByCategory(id)` | Merged pricing: hardcoded defs + Firestore prices |
+| `getPricingByCategory(id)` | Merged pricing: hardcoded defs + Firestore prices. Items with missing prices are excluded (not defaulted to $0). |
 | `getCategoryDisplayName(id)` | Category display name |
 
 ### storage.service.ts

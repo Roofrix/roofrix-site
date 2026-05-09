@@ -4,11 +4,12 @@ import { Router } from '@angular/router';
 import { CartService, CartItem } from '../../../../core/services/cart.service';
 import { FileTransferService } from '../../../../core/services/file-transfer.service';
 import { Observable } from 'rxjs';
+import { FormatDatePipe } from '../../../../shared/pipes/format-date.pipe';
 
 @Component({
   selector: 'app-cart',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormatDatePipe],
   templateUrl: './cart.html',
   styleUrl: './cart.scss',
 })
@@ -61,13 +62,4 @@ export class Cart implements OnInit {
     this.router.navigate(['/dashboard/customer/new-order']);
   }
 
-  formatDate(date: Date | string): string {
-    const d = new Date(date);
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(d);
-  }
 }

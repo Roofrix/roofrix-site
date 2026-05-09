@@ -60,7 +60,6 @@ export class FirestoreService {
       }
       return null;
     } catch (error) {
-      console.error('Error getting document:', error);
       throw error;
     }
   }
@@ -82,7 +81,6 @@ export class FirestoreService {
         ...doc.data()
       } as T));
     } catch (error) {
-      console.error('Error getting documents:', error);
       throw error;
     }
   }
@@ -99,7 +97,6 @@ export class FirestoreService {
       const docRef = doc(this.db, collectionPath, documentId);
       await setDoc(docRef, data as DocumentData);
     } catch (error) {
-      console.error('Error setting document:', error);
       throw error;
     }
   }
@@ -119,7 +116,6 @@ export class FirestoreService {
         updatedAt: Timestamp.now()
       });
     } catch (error) {
-      console.error('Error updating document:', error);
       throw error;
     }
   }
@@ -132,7 +128,6 @@ export class FirestoreService {
       const docRef = doc(this.db, collectionPath, documentId);
       await deleteDoc(docRef);
     } catch (error) {
-      console.error('Error deleting document:', error);
       throw error;
     }
   }
@@ -156,7 +151,6 @@ export class FirestoreService {
           }
         },
         (error) => {
-          console.error('Document listener error:', error);
           observer.error(error);
         }
       );
@@ -187,7 +181,6 @@ export class FirestoreService {
           observer.next(items);
         },
         (error) => {
-          console.error('Collection listener error:', error);
           observer.error(error);
         }
       );
@@ -275,7 +268,6 @@ export class FirestoreService {
         updatedAt: Timestamp.now()
       });
     } catch (error) {
-      console.error('Error appending to array field:', error);
       throw error;
     }
   }
@@ -296,7 +288,6 @@ export class FirestoreService {
         updatedAt: Timestamp.now()
       });
     } catch (error) {
-      console.error('Error removing from array field:', error);
       throw error;
     }
   }
@@ -318,7 +309,6 @@ export class FirestoreService {
         ...doc.data()
       } as T));
     } catch (error) {
-      console.error('Error getting paginated documents:', error);
       throw error;
     }
   }

@@ -26,8 +26,7 @@
           <div class="cart-item" *ngFor="let item of cartItems">
             <div class="item-header">
               <div class="item-info">
-                <h3 class="item-name">{{ item.projectName }}</h3>
-                <p class="item-address">{{ item.projectAddress }}</p>
+                <h3 class="item-name">{{ item.projectAddress }}</h3>
               </div>
               <button class="btn-remove" (click)="removeItem(item.id)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -69,7 +68,7 @@
             </div>
 
             <div class="item-footer">
-              <span class="added-date">Added {{ formatDate(item.addedAt) }}</span>
+              <span class="added-date">Added {{ item.addedAt | formatDate:'time' }}</span>
               <div class="item-total">
                 <span class="total-label">Item Total:</span>
                 <span class="total-amount">${{ item.totalPrice }}</span>

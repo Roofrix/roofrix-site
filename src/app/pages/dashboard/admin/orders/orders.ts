@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -6,21 +6,19 @@ import { Subscription } from 'rxjs';
 import { OrderService, Order, OrderStatus } from '../../../../core/services/order.service';
 import { UserService } from '../../../../core/services/user.service';
 import { AuthService } from '../../../../core/services/auth.service';
-
-const COMPLETED_STATUSES = new Set([
-  'customer_approved',
-  'project_closed',
-  'completed',
-]);
-
-const CANCELLED_STATUSES = new Set([
-  'cancelled',
-]);
+import {
+  COMPLETED_STATUSES,
+  CANCELLED_STATUSES,
+  STATUS_LABELS,
+  STATUS_CLASSES,
+  getAllowedNextStatuses,
+} from '../../../../core/constants/order.constants';
+import { FormatDatePipe } from '../../../../shared/pipes/format-date.pipe';
 
 @Component({
   selector: 'app-admin-orders',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, FormatDatePipe],
   templateUrl: './orders.html',
   styleUrl: './orders.scss',
 })
@@ -111,9 +109,8 @@ export class AdminOrders implements OnInit, OnDestroy {
           this.cdr.detectChanges();
         });
       },
-      error: (err) => {
+      error: () => {
         this.ngZone.run(() => {
-          console.error('Error loading orders:', err);
           this.error = 'Failed to load orders';
           this.loading = false;
           this.cdr.detectChanges();
@@ -153,7 +150,6 @@ export class AdminOrders implements OnInit, OnDestroy {
         order.orderNumber.toLowerCase().includes(query) ||
         order.customerName.toLowerCase().includes(query) ||
         order.customerEmail.toLowerCase().includes(query) ||
-        (order.projectName || '').toLowerCase().includes(query) ||
         (order.items || []).some(item =>
           item.projectAddress?.toLowerCase().includes(query) ||
           item.reportType?.name?.toLowerCase().includes(query) ||
@@ -212,7 +208,8 @@ export class AdminOrders implements OnInit, OnDestroy {
   // Status modal
   openStatusModal(order: Order): void {
     this.selectedOrder = order;
-    this.newStatus = order.status;
+    const allowed = getAllowedNextStatuses(order.status);
+    this.newStatus = allowed.length > 0 ? allowed[0] : order.status;
     this.statusNotes = '';
     this.showStatusModal = true;
   }
@@ -242,8 +239,7 @@ export class AdminOrders implements OnInit, OnDestroy {
 
       this.closeStatusModal();
       this.showNotification('Status updated successfully', 'success');
-    } catch (err) {
-      console.error('Error updating status:', err);
+    } catch {
       this.showNotification('Failed to update order status', 'error');
     } finally {
       this.updatingStatus = false;
@@ -301,19 +297,19 @@ export class AdminOrders implements OnInit, OnDestroy {
     if (!this.orderToDelete) return;
 
     const orderId = this.orderToDelete.id;
+    const user = this.authService.getCurrentUser();
     this.deleting = true;
     this.cdr.detectChanges();
 
     try {
-      await this.orderService.deleteOrder(orderId);
+      await this.orderService.deleteOrder(orderId, user?.uid || 'admin', user?.email || 'admin');
       this.ngZone.run(() => {
         this.deleting = false;
         this.closeDeleteModal();
         this.showNotification('Order cancelled successfully', 'success');
         this.cdr.detectChanges();
       });
-    } catch (err) {
-      console.error('Error deleting order:', err);
+    } catch {
       this.ngZone.run(() => {
         this.deleting = false;
         this.closeDeleteModal();
@@ -341,23 +337,6 @@ export class AdminOrders implements OnInit, OnDestroy {
     this.showSnackbar = false;
   }
 
-  formatDateTime(timestamp: any): string {
-    if (!timestamp) return 'N/A';
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      }).format(date);
-    } catch {
-      return 'N/A';
-    }
-  }
-
   getMapUrl(address: string, location?: { lat: number; lng: number } | null): SafeResourceUrl {
     let url: string;
     if (location?.lat && location?.lng) {
@@ -377,43 +356,16 @@ export class AdminOrders implements OnInit, OnDestroy {
   }
 
   getStatusClass(status: string): string {
-    const statusClasses: { [key: string]: string } = {
-      'order_placed': 'status-order-placed',
-      'payment_pending': 'status-payment-pending',
-      'payment_accepted': 'status-payment-accepted',
-      'work_not_started': 'status-work-not-started',
-      'in_progress': 'status-in-progress',
-      'on_hold': 'status-on-hold',
-      'work_completed': 'status-work-completed',
-      'sent_for_review': 'status-sent-for-review',
-      'customer_approved': 'status-customer-approved',
-      'project_closed': 'status-project-closed',
-      'pending': 'status-pending',
-      'review': 'status-review',
-      'completed': 'status-completed',
-      'cancelled': 'status-cancelled'
-    };
-    return statusClasses[status] || 'status-pending';
+    return STATUS_CLASSES[status] || 'status-pending';
   }
 
   getStatusLabel(status: string): string {
-    const statusLabels: { [key: string]: string } = {
-      'order_placed': 'Order Placed',
-      'payment_pending': 'Payment Pending',
-      'payment_accepted': 'Payment Accepted',
-      'work_not_started': 'Work Not Started',
-      'in_progress': 'In Progress',
-      'on_hold': 'On Hold',
-      'work_completed': 'Work Completed',
-      'sent_for_review': 'Sent for Review',
-      'customer_approved': 'Customer Approved',
-      'project_closed': 'Project Closed',
-      'pending': 'Pending',
-      'review': 'Under Review',
-      'completed': 'Completed',
-      'cancelled': 'Cancelled'
-    };
-    return statusLabels[status] || status;
+    return STATUS_LABELS[status] || status;
+  }
+
+  getAllowedStatuses(): OrderStatus[] {
+    if (!this.selectedOrder) return [];
+    return getAllowedNextStatuses(this.selectedOrder.status);
   }
 
   // Priority methods
@@ -473,18 +425,10 @@ export class AdminOrders implements OnInit, OnDestroy {
     return 'time-normal';
   }
 
-  formatDate(timestamp: any): string {
-    if (!timestamp) return 'N/A';
-
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      }).format(date);
-    } catch {
-      return 'N/A';
-    }
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.showStatusModal) this.closeStatusModal();
+    else if (this.showDetailsModal) this.closeDetailsModal();
+    else if (this.showDeleteModal) this.closeDeleteModal();
   }
 }

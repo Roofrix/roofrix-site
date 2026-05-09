@@ -65,9 +65,7 @@ export class SignIn implements OnInit {
 
     this.authService.signIn(email, password).pipe(
       switchMap((result) => {
-        console.log('Sign in result:', result);
         if (!result.success) {
-          console.log('Sign in failed with error:', result.error);
           throw new Error(result.error || 'Sign in failed');
         }
         // Get current user to determine role-based redirect
@@ -100,7 +98,6 @@ export class SignIn implements OnInit {
       },
       error: (err) => {
         this.ngZone.run(() => {
-          console.log('Sign in subscribe error:', err);
           this.errorMessage = err.message || 'An unexpected error occurred. Please try again.';
           this.loading = false;
           this.showResendButton = this.errorMessage.includes('verify your email');

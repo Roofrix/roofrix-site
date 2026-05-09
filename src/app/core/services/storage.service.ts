@@ -135,7 +135,6 @@ export class StorageService {
             });
           },
           (error) => {
-            console.error('Upload error:', error);
             observer.next({
               progress: 0,
               bytesTransferred: 0,
@@ -160,13 +159,11 @@ export class StorageService {
 
               observer.complete();
             } catch (error) {
-              console.error('Error getting download URL:', error);
               observer.error(error);
             }
           }
         );
       } catch (error) {
-        console.error('Upload setup error:', error);
         observer.error(error);
       }
     });
@@ -199,7 +196,6 @@ export class StorageService {
 
       return downloadURL;
     } catch (error) {
-      console.error('Error uploading file:', error);
       throw error;
     }
   }
@@ -220,7 +216,6 @@ export class StorageService {
 
       return await Promise.all(uploadPromises);
     } catch (error) {
-      console.error('Error uploading multiple files:', error);
       throw error;
     }
   }
@@ -243,7 +238,6 @@ export class StorageService {
       // Delete file
       await deleteObject(storageRef);
     } catch (error) {
-      console.error('Error deleting file:', error);
       throw error;
     }
   }
@@ -256,7 +250,6 @@ export class StorageService {
       const deletePromises = fileUrls.map(url => this.deleteFile(url));
       await Promise.all(deletePromises);
     } catch (error) {
-      console.error('Error deleting multiple files:', error);
       throw error;
     }
   }
@@ -277,7 +270,6 @@ export class StorageService {
       const urlPromises = result.items.map(itemRef => getDownloadURL(itemRef));
       return await Promise.all(urlPromises);
     } catch (error) {
-      console.error('Error listing order files:', error);
       throw error;
     }
   }
@@ -300,7 +292,6 @@ export class StorageService {
 
       return null;
     } catch (error) {
-      console.error('Error extracting path from URL:', error);
       return null;
     }
   }
@@ -321,7 +312,6 @@ export class StorageService {
 
       return metadata;
     } catch (error) {
-      console.error('Error getting file metadata:', error);
       throw error;
     }
   }

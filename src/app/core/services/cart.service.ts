@@ -3,7 +3,6 @@ import { BehaviorSubject, Observable } from 'rxjs';
 
 export interface CartItem {
   id: string;
-  projectName: string;
   projectAddress: string;
   location: { lat: number; lng: number };
   reportType: { id: string; name: string; description: string; price: number };

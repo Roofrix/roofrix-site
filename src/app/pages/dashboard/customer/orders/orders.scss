@@ -391,35 +391,6 @@
     &.status-cancelled { background-color: #fee2e2; color: #991b1b; }
   }
 
-  .time-display {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    display: inline-block;
-
-    &.time-normal { background-color: #d1fae5; color: #065f46; }
-    &.time-warning { background-color: #fef3c7; color: #92400e; }
-    &.time-urgent { background-color: #fed7aa; color: #c2410c; animation: pulse 1s infinite; }
-    &.time-overdue { background-color: #fee2e2; color: #991b1b; animation: pulse 0.5s infinite; }
-
-    .countdown-timer {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-
-      &::before {
-        content: '⏱️';
-        font-size: 0.75rem;
-      }
-    }
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-  }
-
   .actions {
     display: flex;
     gap: 0.5rem;
