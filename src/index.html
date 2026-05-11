@@ -6,8 +6,13 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/png" href="assets/images/Logo.png">
-  <!-- Google Maps -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA7o2T6o-1uddtlc3PhDqYXi8F5rZN3om8&libraries=places,geocoding"></script>
+  <!-- Google Maps (async + callback to unblock page rendering) -->
+  <script>
+    window.__googleMapsReady = new Promise(function(resolve) {
+      window.__resolveGoogleMaps = resolve;
+    });
+  </script>
+  <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA7o2T6o-1uddtlc3PhDqYXi8F5rZN3om8&libraries=places,geocoding&callback=__resolveGoogleMaps"></script>
 </head>
 <body>
   <app-root></app-root>

@@ -24,8 +24,8 @@ A web platform where customers order roof measurement reports and admins manage 
 
 | Role | Access |
 |------|--------|
-| **customer** | Create orders, upload photos, view order history (Open/Completed/Cancelled tabs), cart |
-| **admin** | View all orders, view uploaded images/PDFs, update status, cancel orders (soft delete) |
+| **customer** | Create orders, upload photos, view order history (Open/Completed/Cancelled tabs), cart (no cancel — admin only) |
+| **admin** | View all orders, view uploaded images/PDFs, update status (cancel/delete button hidden — commented out for future re-enable) |
 
 ---
 
@@ -60,7 +60,7 @@ src/
       pipes/
         format-date.pipe.ts        # Shared FormatDatePipe (short, long, datetime, time formats)
     pages/
-      home/                        # Landing page with "Order Now" dropdown
+      home/                        # Landing page with "Order Now" button (uses basic structure pricing)
       features/
       about/
       contact/
@@ -273,53 +273,31 @@ Each category object:
 ## Order Status Flow
 
 ```
-order_placed
-    |
-    v
-payment_pending
-    |
-    v
-payment_accepted
-    |
-    v
-work_not_started
-    |
-    v
-in_progress  <---->  on_hold
-    |
-    v
-work_completed
-    |
-    v
-sent_for_review
-    |
-    v
-customer_approved
-    |
-    v
-project_closed
+in_progress → completed
+      |
+      v
+  cancelled
 ```
 
-Legacy statuses (backward compatibility): `pending`, `review`, `completed`, `cancelled`
+Orders are created directly with `in_progress` status. Only 3 statuses exist:
+- **In Progress** — order is being worked on (set on creation)
+- **Completed** — work is done
+- **Cancelled** — order was cancelled
+
+Legacy statuses from old orders (backward compatibility): `order_placed`, `payment_pending`, `payment_accepted`, `work_not_started`, `on_hold`, `work_completed`, `sent_for_review`, `customer_approved`, `project_closed`, `pending`, `review`. These can transition to `in_progress`, `completed`, or `cancelled`.
 
 ### Status Transition Validation
 
-Status changes are validated server-side via `isValidStatusTransition()` in `order.constants.ts`. Invalid transitions throw an error with a descriptive message. The admin status modal dropdown only shows valid next statuses, and the "Update Status" button is disabled for terminal statuses.
+Status changes are validated via `isValidStatusTransition()` in `order.constants.ts`. Invalid transitions throw an error. The admin status modal dropdown only shows valid next statuses, and the "Update Status" button is disabled for terminal statuses.
 
-**Terminal statuses** (no further transitions): `project_closed`, `cancelled`, `completed`
+**Terminal statuses** (no further transitions): `completed`, `cancelled`
 
 **Valid transitions:**
 | From | Allowed To |
 |------|-----------|
-| `order_placed` | `payment_pending`, `payment_accepted`, `work_not_started`, `in_progress`, `cancelled` |
-| `payment_pending` | `payment_accepted`, `cancelled` |
-| `payment_accepted` | `work_not_started`, `in_progress`, `cancelled` |
-| `work_not_started` | `in_progress`, `on_hold`, `cancelled` |
-| `in_progress` | `on_hold`, `work_completed`, `cancelled` |
-| `on_hold` | `in_progress`, `cancelled` |
-| `work_completed` | `sent_for_review`, `in_progress`, `cancelled` |
-| `sent_for_review` | `customer_approved`, `in_progress`, `cancelled` |
-| `customer_approved` | `project_closed` |
+| `in_progress` | `completed`, `cancelled` |
+| `completed` | *(terminal)* |
+| `cancelled` | *(terminal)* |
 
 ### Orders Tab Classification (both admin and customer)
 
@@ -333,10 +311,10 @@ Both admin and customer orders pages split orders into three tabs using shared c
 
 - **Both sides**: Client-side array filtering in `filterOrders()` with search and pagination
 - **Page layout**: Welcome header with user name + 3 stat cards (Total Orders, Completed, In Progress) → Order History card with tabs, search, data table, and pagination footer
-- **Cancel order**: Sets `status: 'cancelled'` + adds timeline entry + sets `isDeleted: true` + `deletedAt` — order moves to Cancelled tab, data preserved
-- **Customer cancellation**: Only allowed for early statuses (`order_placed`, `payment_pending`, `payment_accepted`, `work_not_started`). Cancel button hidden for in-progress/completed orders.
+- **Cancel order**: Button hidden on both admin and customer sides (admin HTML commented out for future re-enable). Logic preserved in TS — `deleteOrder()` sets `status: 'cancelled'` + `isDeleted: true` + `deletedAt`
 - **Stats**: Exclude `isDeleted` orders from counts
 - **Keyboard**: All modals close on Escape key
+- **Admin timer**: Countdown timer shows time remaining (8h standard, 2h rush). Once status reaches `work_completed` or later (or `cancelled`), timer stops and shows elapsed time taken (e.g., "3h 15m") with a blue `time-completed` badge.
 
 ---
 
@@ -470,12 +448,13 @@ service firebase.storage {
 /dashboard/customer/order-review?fromCart=true
   -> Display all cart items
   -> Click "Confirm Order"
-  -> 1. Create order with items[] array in Firestore
-  -> 2. Upload files PER CART ITEM to Storage: {uid}/{orderId}/{file}
-  -> 3. Store per-item URLs on items[].siteImages[] (warning shown if any upload fails)
-  -> 4. Send admin email notification (warning shown if email fails)
-  -> 5. Show confirmation
-  -> 6. Clear all: CartService + FileTransferService + sessionStorage (cartCheckout, orderData, selectedStructureType)
+  -> 1. Loop through each cart item and create a SEPARATE order per item in Firestore
+  -> 2. Upload files per item to Storage: {uid}/{orderId}/{file}
+  -> 3. Store per-item URLs on items[0].siteImages[] per order (warning shown if any upload fails)
+  -> 4. Send admin email notification PER ORDER (warning shown if email fails)
+  -> 5. Show confirmation with ALL order numbers (e.g., "Order Numbers: 5, 6, 7")
+  -> 6. "View Orders" button navigates to order list (not single order detail)
+  -> 7. Clear all: CartService + FileTransferService + sessionStorage (cartCheckout, orderData, selectedStructureType)
 ```
 
 ### Admin Order Management Flow

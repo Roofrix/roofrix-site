@@ -411,6 +411,7 @@
     &.time-warning { background-color: #fef3c7; color: #92400e; }
     &.time-urgent { background-color: #fed7aa; color: #c2410c; animation: pulse 1s infinite; }
     &.time-overdue { background-color: #fee2e2; color: #991b1b; animation: pulse 0.5s infinite; }
+    &.time-completed { background-color: #e0e7ff; color: #3730a3; }
 
     .countdown-timer {
       display: flex;
@@ -1075,6 +1076,39 @@
   }
 
   .pdf-item svg { stroke: #dc2626; }
+
+  .gallery-wrapper {
+    position: relative;
+
+    .download-btn {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s;
+      padding: 0;
+
+      svg { stroke: #475569; }
+
+      &:hover {
+        background: #fff;
+        svg { stroke: #1e40af; }
+      }
+    }
+
+    &:hover .download-btn {
+      opacity: 1;
+    }
+  }
 }
 
 // Responsive

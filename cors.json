@@ -1,0 +1,7 @@
+[
+  {
+    "origin": ["http://localhost:4200", "https://roofrix-d116a.web.app"],
+    "method": ["GET"],
+    "maxAgeSeconds": 3600
+  }
+]

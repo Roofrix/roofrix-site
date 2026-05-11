@@ -6,6 +6,7 @@ import {
   uploadBytes,
   uploadBytesResumable,
   getDownloadURL,
+  getBlob,
   deleteObject,
   listAll,
   getMetadata,
@@ -294,6 +295,24 @@ export class StorageService {
     } catch (error) {
       return null;
     }
+  }
+
+  /**
+   * Download a file from Storage by URL
+   */
+  async downloadFile(fileUrl: string, fileName: string): Promise<void> {
+    const storagePath = this.extractPathFromUrl(fileUrl);
+    if (!storagePath) {
+      throw new Error('Invalid file URL');
+    }
+    const storageRef = ref(this.storage, storagePath);
+    const blob = await getBlob(storageRef);
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(blobUrl);
   }
 
   /**

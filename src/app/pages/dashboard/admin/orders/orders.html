@@ -99,11 +99,9 @@
           <th>Order ID</th>
           <th>Customer</th>
           <th>Report Type</th>
-          <th>Category</th>
+          <th>Addons</th>
           <th>Priority</th>
-          <th>Order Total</th>
           <th>Time</th>
-          <th>Status</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -125,7 +123,7 @@
             <span class="report-type">{{ getReportType(order) }}</span>
           </td>
           <td>
-            <span class="category">{{ getCategory(order) }}</span>
+            <span class="addons">{{ getAddons(order) }}</span>
           </td>
           <td>
             <span class="priority-badge" [ngClass]="getPriorityClass(order)">
@@ -133,17 +131,9 @@
             </span>
           </td>
           <td>
-            <span class="order-total">${{ order.totalPrice.toFixed(2) }}</span>
-          </td>
-          <td>
             <div class="time-display" [ngClass]="getTimeClass(order)">
               <span class="countdown-timer">{{ getCountdownDisplay(order) }}</span>
             </div>
-          </td>
-          <td>
-            <span class="status-badge" [ngClass]="getStatusClass(order.isDeleted ? 'cancelled' : order.status)">
-              {{ getStatusLabel(order.isDeleted ? 'cancelled' : order.status) }}
-            </span>
           </td>
           <td>
             <div class="actions">
@@ -159,6 +149,7 @@
                   <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
               </button>
+              <!-- Cancel/delete button hidden for now — uncomment to re-enable
               <button class="action-btn delete-btn" *ngIf="!order.isDeleted" (click)="openDeleteModal(order)" title="Cancel Order">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3 6 5 6 21 6"></polyline>
@@ -167,6 +158,7 @@
                   <line x1="14" y1="11" x2="14" y2="17"></line>
                 </svg>
               </button>
+              -->
             </div>
           </td>
         </tr>
@@ -291,26 +283,6 @@
           </button>
         </div>
 
-        <!-- Order Summary Bar -->
-        <div class="order-summary-bar">
-          <div class="summary-item">
-            <span class="summary-label">Customer:</span>
-            <span class="summary-value">{{ detailsOrder.customerName }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Total Items:</span>
-            <span class="summary-value highlight">{{ detailsOrder.items.length }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Order Total:</span>
-            <span class="summary-value price">${{ detailsOrder.totalPrice.toFixed(2) }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="detail-badge status-badge" [ngClass]="getStatusClass(detailsOrder.status)">
-              {{ getStatusLabel(detailsOrder.status) }}
-            </span>
-          </div>
-        </div>
 
         <!-- Current Item Details -->
         <ng-container *ngIf="getCurrentItem() as item">
@@ -368,23 +340,32 @@
               <span class="detail-label">Uploaded Files ({{ item.siteImages.length }}):</span>
               <div class="site-images-gallery">
                 <ng-container *ngFor="let img of item.siteImages">
-                  <a *ngIf="getFileType(img.name) === 'image'" [href]="img.url" target="_blank" class="gallery-item image-item" [title]="img.name">
-                    <img [src]="img.url" [alt]="img.name" />
-                  </a>
-                  <a *ngIf="getFileType(img.name) === 'pdf'" [href]="img.url" target="_blank" class="gallery-item pdf-item" [title]="img.name">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                      <polyline points="14 2 14 8 20 8"></polyline>
-                    </svg>
-                    <span>{{ img.name }}</span>
-                  </a>
-                  <a *ngIf="getFileType(img.name) === 'other'" [href]="img.url" target="_blank" class="gallery-item file-item" [title]="img.name">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-                      <polyline points="13 2 13 9 20 9"></polyline>
-                    </svg>
-                    <span>{{ img.name }}</span>
-                  </a>
+                  <div class="gallery-wrapper">
+                    <a *ngIf="getFileType(img.name) === 'image'" [href]="img.url" target="_blank" class="gallery-item image-item" [title]="img.name">
+                      <img [src]="img.url" [alt]="img.name" />
+                    </a>
+                    <a *ngIf="getFileType(img.name) === 'pdf'" [href]="img.url" target="_blank" class="gallery-item pdf-item" [title]="img.name">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                      </svg>
+                      <span>{{ img.name }}</span>
+                    </a>
+                    <a *ngIf="getFileType(img.name) === 'other'" [href]="img.url" target="_blank" class="gallery-item file-item" [title]="img.name">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                        <polyline points="13 2 13 9 20 9"></polyline>
+                      </svg>
+                      <span>{{ img.name }}</span>
+                    </a>
+                    <button class="download-btn" (click)="downloadFile(img.url, img.name)" title="Download {{ img.name }}">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                      </svg>
+                    </button>
+                  </div>
                 </ng-container>
               </div>
             </div>
@@ -394,8 +375,8 @@
           <div class="details-right">
             <div class="map-container">
               <iframe
-                *ngIf="item.projectAddress || item.location"
-                [src]="getMapUrl(item.projectAddress, item.location)"
+                *ngIf="cachedMapUrl"
+                [src]="cachedMapUrl"
                 width="100%"
                 height="100%"
                 style="border:0;"
@@ -418,7 +399,7 @@
   </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
+<!-- Delete Confirmation Modal — hidden for now, uncomment to re-enable
 <div class="modal-overlay" *ngIf="showDeleteModal" (click)="closeDeleteModal()">
   <div class="modal delete-modal" (click)="$event.stopPropagation()">
     <div class="modal-header delete-header">
@@ -459,6 +440,7 @@
     </div>
   </div>
 </div>
+-->
 
 <!-- Snackbar Notification -->
 <div class="snackbar" *ngIf="showSnackbar" [ngClass]="snackbarType">

@@ -6,6 +6,7 @@ import { Subscription } from 'rxjs';
 import { OrderService, Order, OrderStatus } from '../../../../core/services/order.service';
 import { UserService } from '../../../../core/services/user.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { StorageService } from '../../../../core/services/storage.service';
 import {
   COMPLETED_STATUSES,
   CANCELLED_STATUSES,
@@ -26,6 +27,7 @@ export class AdminOrders implements OnInit, OnDestroy {
   private orderService = inject(OrderService);
   private userService = inject(UserService);
   private authService = inject(AuthService);
+  private storageService = inject(StorageService);
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
   private sanitizer = inject(DomSanitizer);
@@ -60,6 +62,7 @@ export class AdminOrders implements OnInit, OnDestroy {
   showDetailsModal = false;
   detailsOrder: Order | null = null;
   currentItemIndex = 0;
+  cachedMapUrl: SafeResourceUrl | null = null;
 
   // Delete modal
   showDeleteModal = false;
@@ -120,7 +123,7 @@ export class AdminOrders implements OnInit, OnDestroy {
   }
 
   computeStats(): void {
-    const activeOrders = this.orders.filter(o => !o.isDeleted);
+    const activeOrders = this.orders;
     this.totalOrders = activeOrders.length;
     this.completedCount = activeOrders.filter(o => COMPLETED_STATUSES.has(o.status)).length;
     this.inProgressCount = activeOrders.filter(o => o.status === 'in_progress').length;
@@ -205,6 +208,12 @@ export class AdminOrders implements OnInit, OnDestroy {
     return order.items?.[0]?.structureCategoryName || 'N/A';
   }
 
+  getAddons(order: Order): string {
+    const addons = order.items?.[0]?.addons;
+    if (!addons || addons.length === 0) return 'None';
+    return addons.map(a => a.name).join(', ');
+  }
+
   // Status modal
   openStatusModal(order: Order): void {
     this.selectedOrder = order;
@@ -250,6 +259,7 @@ export class AdminOrders implements OnInit, OnDestroy {
   openDetailsModal(order: Order): void {
     this.detailsOrder = order;
     this.currentItemIndex = 0;
+    this.updateCachedMapUrl();
     this.showDetailsModal = true;
   }
 
@@ -257,6 +267,7 @@ export class AdminOrders implements OnInit, OnDestroy {
     this.showDetailsModal = false;
     this.detailsOrder = null;
     this.currentItemIndex = 0;
+    this.cachedMapUrl = null;
   }
 
   getCurrentItem(): any {
@@ -269,12 +280,23 @@ export class AdminOrders implements OnInit, OnDestroy {
   previousItem(): void {
     if (this.currentItemIndex > 0) {
       this.currentItemIndex--;
+      this.updateCachedMapUrl();
     }
   }
 
   nextItem(): void {
     if (this.detailsOrder?.items && this.currentItemIndex < this.detailsOrder.items.length - 1) {
       this.currentItemIndex++;
+      this.updateCachedMapUrl();
+    }
+  }
+
+  private updateCachedMapUrl(): void {
+    const item = this.getCurrentItem();
+    if (item?.projectAddress || item?.location) {
+      this.cachedMapUrl = this.getMapUrl(item.projectAddress, item.location);
+    } else {
+      this.cachedMapUrl = null;
     }
   }
 
@@ -355,6 +377,14 @@ export class AdminOrders implements OnInit, OnDestroy {
     return 'other';
   }
 
+  async downloadFile(url: string, fileName: string): Promise<void> {
+    try {
+      await this.storageService.downloadFile(url, fileName);
+    } catch {
+      window.open(url, '_blank');
+    }
+  }
+
   getStatusClass(status: string): string {
     return STATUS_CLASSES[status] || 'status-pending';
   }
@@ -385,6 +415,23 @@ export class AdminOrders implements OnInit, OnDestroy {
     return this.isRushOrder(order) ? 'priority-rush' : 'priority-standard';
   }
 
+  // Statuses where work is done — timer should show time taken instead of countdown
+  private readonly WORK_DONE_STATUSES = new Set([
+    'completed', 'cancelled',
+    // Legacy
+    'work_completed', 'sent_for_review', 'customer_approved', 'project_closed'
+  ]);
+
+  // Find when completed (or cancelled) was reached from the status timeline
+  private getWorkDoneTimestamp(order: Order): Date | null {
+    if (!order.statusTimeline?.length) return null;
+    const entry = order.statusTimeline.find(
+      e => e.status === 'completed' || e.status === 'cancelled' || e.status === 'work_completed'
+    );
+    if (!entry?.changedAt) return null;
+    return entry.changedAt.toDate ? entry.changedAt.toDate() : new Date(entry.changedAt);
+  }
+
   // Timer methods
   getRemainingTime(order: Order): { hours: number; minutes: number; totalMs: number } {
     if (!order.createdAt) return { hours: 0, minutes: 0, totalMs: 0 };
@@ -403,8 +450,30 @@ export class AdminOrders implements OnInit, OnDestroy {
     return { hours, minutes, totalMs: remaining };
   }
 
+  getTimeTaken(order: Order): string {
+    if (!order.createdAt) return '--';
+
+    const createdDate = order.createdAt.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+    const doneDate = this.getWorkDoneTimestamp(order);
+    if (!doneDate) return '--';
+
+    const elapsed = doneDate.getTime() - createdDate.getTime();
+    const hours = Math.floor(elapsed / (1000 * 60 * 60));
+    const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m`;
+  }
+
+  isWorkDone(order: Order): boolean {
+    return this.WORK_DONE_STATUSES.has(order.status) || !!order.isDeleted;
+  }
+
   getCountdownDisplay(order: Order): string {
     if (!order.createdAt) return '--';
+
+    // Show time taken for completed/cancelled orders
+    if (this.isWorkDone(order)) {
+      return this.getTimeTaken(order);
+    }
 
     const { hours, minutes, totalMs } = this.getRemainingTime(order);
 
@@ -416,6 +485,9 @@ export class AdminOrders implements OnInit, OnDestroy {
 
   getTimeClass(order: Order): string {
     if (!order.createdAt) return '';
+
+    // Completed orders get a neutral "done" style
+    if (this.isWorkDone(order)) return 'time-completed';
 
     const { totalMs } = this.getRemainingTime(order);
 
@@ -429,6 +501,5 @@ export class AdminOrders implements OnInit, OnDestroy {
   onEscapeKey(): void {
     if (this.showStatusModal) this.closeStatusModal();
     else if (this.showDetailsModal) this.closeDetailsModal();
-    else if (this.showDeleteModal) this.closeDeleteModal();
   }
 }

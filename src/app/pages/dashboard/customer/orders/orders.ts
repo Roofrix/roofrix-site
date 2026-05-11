@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone, HostListener } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -45,11 +45,6 @@ export class CustomerOrders implements OnInit, OnDestroy {
   searchQuery = '';
   currentPage = 1;
   pageSize = 10;
-
-  // Cancel modal
-  showCancelModal = false;
-  orderToCancel: Order | null = null;
-  cancelling = false;
 
   ngOnInit(): void {
     this.loadOrders();
@@ -104,7 +99,7 @@ export class CustomerOrders implements OnInit, OnDestroy {
   }
 
   computeStats(): void {
-    const activeOrders = this.allOrders.filter(o => !o.isDeleted);
+    const activeOrders = this.allOrders;
     this.totalOrders = activeOrders.length;
     this.completedCount = activeOrders.filter(o => COMPLETED_STATUSES.has(o.status)).length;
     this.inProgressCount = activeOrders.filter(o => o.status === 'in_progress').length;
@@ -187,6 +182,12 @@ export class CustomerOrders implements OnInit, OnDestroy {
     return order.items?.[0]?.structureCategoryName || 'N/A';
   }
 
+  getAddons(order: Order): string {
+    const addons = order.items?.[0]?.addons;
+    if (!addons || addons.length === 0) return 'None';
+    return addons.map(a => a.name).join(', ');
+  }
+
   isRushOrder(order: Order): boolean {
     return (order.items || []).some(item =>
       item.addons?.some(addon =>
@@ -215,54 +216,6 @@ export class CustomerOrders implements OnInit, OnDestroy {
     return (order.items || []).reduce((sum, item) => sum + (item.siteImages?.length || 0), 0);
   }
 
-  // Cancel order
-  openCancelModal(order: Order): void {
-    this.orderToCancel = order;
-    this.showCancelModal = true;
-  }
-
-  closeCancelModal(): void {
-    this.showCancelModal = false;
-    this.orderToCancel = null;
-  }
-
-  /** Statuses that cannot be cancelled by the customer */
-  canCancelOrder(order: Order): boolean {
-    const nonCancellable = new Set([
-      'in_progress', 'work_completed', 'sent_for_review',
-      'customer_approved', 'project_closed', 'completed', 'cancelled'
-    ]);
-    return !order.isDeleted && !nonCancellable.has(order.status);
-  }
-
-  async cancelOrder(): Promise<void> {
-    if (!this.orderToCancel) return;
-
-    this.cancelling = true;
-    this.cdr.detectChanges();
-
-    const user = this.authService.getCurrentUser();
-
-    try {
-      await this.orderService.deleteOrder(
-        this.orderToCancel.id,
-        user?.uid || 'customer',
-        user?.email || 'customer'
-      );
-      this.ngZone.run(() => {
-        this.cancelling = false;
-        this.closeCancelModal();
-        this.cdr.detectChanges();
-      });
-    } catch {
-      this.ngZone.run(() => {
-        this.cancelling = false;
-        this.closeCancelModal();
-        this.cdr.detectChanges();
-      });
-    }
-  }
-
   viewOrderDetails(orderId: string): void {
     this.router.navigate(['/dashboard/customer/orders', orderId]);
   }
@@ -271,8 +224,4 @@ export class CustomerOrders implements OnInit, OnDestroy {
     this.router.navigate(['/dashboard/customer/orders/products']);
   }
 
-  @HostListener('document:keydown.escape')
-  onEscapeKey(): void {
-    if (this.showCancelModal) this.closeCancelModal();
-  }
 }

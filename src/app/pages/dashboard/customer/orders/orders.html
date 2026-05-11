@@ -98,9 +98,8 @@
           <th>Date</th>
           <th>Order ID</th>
           <th>Report Type</th>
-          <th>Category</th>
+          <th>Addons</th>
           <th>Priority</th>
-          <th>Order Total</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
@@ -117,15 +116,12 @@
             <span class="report-type">{{ getReportType(order) }}</span>
           </td>
           <td>
-            <span class="category">{{ getCategory(order) }}</span>
+            <span class="addons">{{ getAddons(order) }}</span>
           </td>
           <td>
             <span class="priority-badge" [ngClass]="getPriorityClass(order)">
               {{ getPriorityLabel(order) }}
             </span>
-          </td>
-          <td>
-            <span class="order-total">${{ order.totalPrice.toFixed(2) }}</span>
           </td>
           <td>
             <span class="status-badge" [ngClass]="getStatusClass(order.isDeleted ? 'cancelled' : order.status)">
@@ -138,13 +134,6 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                   <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-              </button>
-              <button class="action-btn delete-btn" *ngIf="canCancelOrder(order)" (click)="openCancelModal(order); $event.stopPropagation()" title="Cancel Order">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="15" y1="9" x2="9" y2="15"></line>
-                  <line x1="9" y1="9" x2="15" y2="15"></line>
                 </svg>
               </button>
             </div>
@@ -182,43 +171,3 @@
   </div>
 </div>
 
-<!-- Cancel Order Modal -->
-<div class="modal-overlay" *ngIf="showCancelModal" (click)="closeCancelModal()">
-  <div class="modal cancel-modal" (click)="$event.stopPropagation()">
-    <div class="modal-header cancel-header">
-      <h2>Cancel Order</h2>
-      <button class="close-btn" (click)="closeCancelModal()">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-    </div>
-
-    <div class="modal-body" *ngIf="orderToCancel">
-      <div class="cancel-warning">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        <p>Are you sure you want to cancel this order?</p>
-      </div>
-      <div class="order-info cancel-info">
-        <strong>{{ orderToCancel.orderNumber }}</strong>
-        <span>{{ orderToCancel.items?.[0]?.projectAddress }}</span>
-      </div>
-      <p class="cancel-note">The order will be moved to the Cancelled tab.</p>
-    </div>
-
-    <div class="modal-footer">
-      <button class="btn-secondary" (click)="closeCancelModal()" [disabled]="cancelling">
-        Keep Order
-      </button>
-      <button class="btn-danger" (click)="cancelOrder()" [disabled]="cancelling">
-        <span *ngIf="!cancelling">Cancel Order</span>
-        <span *ngIf="cancelling">Cancelling...</span>
-      </button>
-    </div>
-  </div>
-</div>

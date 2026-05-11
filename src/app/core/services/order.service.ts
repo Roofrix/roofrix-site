@@ -164,7 +164,7 @@ export class OrderService {
       const orderNumber = await this.generateOrderNumber();
 
       const initialStatusEntry: StatusTimelineEntry = {
-        status: 'order_placed',
+        status: 'in_progress',
         changedAt: timestamp,
         changedBy: createdBy,
         changedByEmail: data.customerEmail,
@@ -188,12 +188,13 @@ export class OrderService {
         customerEmail: data.customerEmail,
         customerName: data.customerName,
         totalPrice: data.totalPrice,
-        status: 'order_placed',
+        status: 'in_progress',
         statusTimeline: [initialStatusEntry],
         priority: isRushOrder ? 'high' : data.priority,
         rushDeadline: rushDeadline,
         createdAt: timestamp,
         updatedAt: timestamp,
+        workStartedAt: timestamp,
         items: data.items,
       };
 
@@ -276,7 +277,7 @@ export class OrderService {
         updateData.workStartedAt = timestamp;
       }
 
-      if (newStatus === 'project_closed' || newStatus === 'completed') {
+      if (newStatus === 'completed') {
         updateData.completedAt = timestamp;
       }
 

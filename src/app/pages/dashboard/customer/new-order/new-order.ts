@@ -277,9 +277,19 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
-    setTimeout(() => {
+    this.waitForGoogleMaps();
+  }
+
+  private async waitForGoogleMaps(): Promise<void> {
+    if (typeof google !== 'undefined' && google.maps) {
       this.initGoogleMap();
-    }, 100);
+      return;
+    }
+    // Wait for the async script callback
+    if ((window as any).__googleMapsReady) {
+      await (window as any).__googleMapsReady;
+      this.initGoogleMap();
+    }
   }
 
   private initGoogleMap(): void {

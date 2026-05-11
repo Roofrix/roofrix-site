@@ -2,9 +2,10 @@ import { OrderStatus } from '../services/order.service';
 
 /** Statuses that count as "completed" for filtering */
 export const COMPLETED_STATUSES = new Set<string>([
+  'completed',
+  // Legacy
   'customer_approved',
   'project_closed',
-  'completed',
 ]);
 
 /** Statuses that count as "cancelled" for filtering */
@@ -13,25 +14,25 @@ export const CANCELLED_STATUSES = new Set<string>([
 ]);
 
 /** Terminal statuses — no further transitions allowed */
-const TERMINAL_STATUSES = new Set<OrderStatus>(['project_closed', 'cancelled', 'completed']);
+const TERMINAL_STATUSES = new Set<OrderStatus>([]);
 
 /** Valid status transitions map */
 const VALID_TRANSITIONS: Record<string, OrderStatus[]> = {
-  'order_placed': ['payment_pending', 'payment_accepted', 'work_not_started', 'in_progress', 'cancelled'],
-  'payment_pending': ['payment_accepted', 'cancelled'],
-  'payment_accepted': ['work_not_started', 'in_progress', 'cancelled'],
-  'work_not_started': ['in_progress', 'on_hold', 'cancelled'],
-  'in_progress': ['on_hold', 'work_completed', 'cancelled'],
-  'on_hold': ['in_progress', 'cancelled'],
-  'work_completed': ['sent_for_review', 'in_progress', 'cancelled'],
-  'sent_for_review': ['customer_approved', 'in_progress', 'cancelled'],
-  'customer_approved': ['project_closed'],
+  'in_progress': ['completed', 'cancelled'],
+  'completed': ['in_progress', 'cancelled'],
+  'cancelled': ['in_progress', 'completed'],
+  // Legacy statuses — allow transitioning out of old statuses
+  'order_placed': ['in_progress', 'completed', 'cancelled'],
+  'payment_pending': ['in_progress', 'completed', 'cancelled'],
+  'payment_accepted': ['in_progress', 'completed', 'cancelled'],
+  'work_not_started': ['in_progress', 'completed', 'cancelled'],
+  'on_hold': ['in_progress', 'completed', 'cancelled'],
+  'work_completed': ['completed', 'cancelled'],
+  'sent_for_review': ['completed', 'cancelled'],
+  'customer_approved': ['completed', 'cancelled'],
   'project_closed': [],
-  // Legacy statuses
-  'pending': ['in_progress', 'review', 'cancelled'],
-  'review': ['completed', 'in_progress', 'cancelled'],
-  'completed': ['project_closed'],
-  'cancelled': [],
+  'pending': ['in_progress', 'completed', 'cancelled'],
+  'review': ['completed', 'cancelled'],
 };
 
 /**
@@ -53,11 +54,14 @@ export function getAllowedNextStatuses(currentStatus: OrderStatus): OrderStatus[
 
 /** Human-readable status labels */
 export const STATUS_LABELS: Record<string, string> = {
+  'in_progress': 'In Progress',
+  'completed': 'Completed',
+  'cancelled': 'Cancelled',
+  // Legacy labels (for old orders)
   'order_placed': 'Order Placed',
   'payment_pending': 'Payment Pending',
   'payment_accepted': 'Payment Accepted',
   'work_not_started': 'Work Not Started',
-  'in_progress': 'In Progress',
   'on_hold': 'On Hold',
   'work_completed': 'Work Completed',
   'sent_for_review': 'Sent for Review',
@@ -65,8 +69,6 @@ export const STATUS_LABELS: Record<string, string> = {
   'project_closed': 'Project Closed',
   'pending': 'Pending',
   'review': 'Under Review',
-  'completed': 'Completed',
-  'cancelled': 'Cancelled',
 };
 
 /** CSS class per status */

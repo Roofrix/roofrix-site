@@ -37,6 +37,8 @@ export class OrderReview implements OnInit {
   orderConfirmed = false;
   orderNumber = '';
   orderId = '';
+  orderNumbers: string[] = [];
+  orderIds: string[] = [];
   loading = false;
   uploadingFiles = false;
   uploadProgress = '';
@@ -218,81 +220,85 @@ export class OrderReview implements OnInit {
   }
 
   private async createCartOrder(user: any): Promise<void> {
-    // Build items array for the order
-    const orderItems: OrderItem[] = this.cartItems.map(item => ({
-      projectAddress: item.projectAddress,
-      location: item.location,
-      reportType: item.reportType,
-      addons: item.selectedAddons,
-      structureCategory: item.structureCategory,
-      structureCategoryName: item.structureCategoryName,
-      structureCategorySqRange: item.structureCategorySqRange,
-      primaryPitch: item.primaryPitch || '',
-      secondaryPitch: item.secondaryPitch || '',
-      structureType: item.structureType || '',
-      specialInstructions: item.specialInstructions,
-      basePrice: item.basePrice,
-      addonsTotal: item.addonsTotal,
-      totalPrice: item.totalPrice
-    }));
-
     const userProfile = await this.userService.getUserProfile(user.uid!);
+    const customerName = userProfile?.name || user.email || 'Customer';
+    const customerEmail = user.email || '';
 
-    const orderData: CreateOrderData = {
-      customerId: user.uid!,
-      customerEmail: user.email || '',
-      customerName: userProfile?.name || user.email || 'Customer',
-      totalPrice: this.cartTotal,
-      priority: 'medium',
-      items: orderItems
-    };
+    const createdOrderNumbers: string[] = [];
+    const createdOrderIds: string[] = [];
 
-    // Save to Firestore
-    const createdOrderId = await this.orderService.createOrder(orderData, user.uid!);
+    for (let i = 0; i < this.cartItems.length; i++) {
+      const item = this.cartItems[i];
 
-    this.orderId = createdOrderId;
-    const createdOrder = await this.orderService.getOrder(createdOrderId);
-    this.orderNumber = createdOrder?.orderNumber || createdOrderId;
+      const orderItem: OrderItem = {
+        projectAddress: item.projectAddress,
+        location: item.location,
+        reportType: item.reportType,
+        addons: item.selectedAddons,
+        structureCategory: item.structureCategory,
+        structureCategoryName: item.structureCategoryName,
+        structureCategorySqRange: item.structureCategorySqRange,
+        primaryPitch: item.primaryPitch || '',
+        secondaryPitch: item.secondaryPitch || '',
+        structureType: item.structureType || '',
+        specialInstructions: item.specialInstructions,
+        basePrice: item.basePrice,
+        addonsTotal: item.addonsTotal,
+        totalPrice: item.totalPrice
+      };
 
-    // Upload files per cart item
-    const hasFiles = this.fileTransferService.hasFiles();
+      const orderData: CreateOrderData = {
+        customerId: user.uid!,
+        customerEmail: customerEmail,
+        customerName: customerName,
+        totalPrice: item.totalPrice,
+        priority: 'medium',
+        items: [orderItem]
+      };
 
-    if (hasFiles) {
-      this.ngZone.run(() => {
-        this.uploadingFiles = true;
-        this.cdr.detectChanges();
+      const createdOrderId = await this.orderService.createOrder(orderData, user.uid!);
+      const createdOrder = await this.orderService.getOrder(createdOrderId);
+      const orderNumber = createdOrder?.orderNumber || createdOrderId;
+
+      createdOrderNumbers.push(orderNumber);
+      createdOrderIds.push(createdOrderId);
+
+      // Upload files for this item
+      const itemFiles = this.fileTransferService.getCartItemFiles(item.id);
+      if (itemFiles.length > 0) {
+        this.ngZone.run(() => {
+          this.uploadingFiles = true;
+          this.uploadProgress = `Uploading files for item ${i + 1}/${this.cartItems.length}...`;
+          this.cdr.detectChanges();
+        });
+
+        try {
+          const urls = await this.storageService.uploadMultipleFiles(
+            itemFiles, 'site-images', user.uid!, createdOrderId
+          );
+          orderItem.siteImages = urls.map((url, j) => ({ url, name: itemFiles[j].name }));
+          await this.orderService.updateOrder(createdOrderId, { items: [orderItem] });
+        } catch (uploadError) {
+          this.uploadWarning = 'Some orders were placed, but some files failed to upload.';
+        }
+      }
+
+      // Send email notification per order
+      const emailResult = await this.emailNotificationService.sendNewOrderNotification({
+        orderNumber: orderNumber,
+        customerName: customerName,
+        customerEmail: customerEmail,
+        totalPrice: item.totalPrice,
+        itemCount: 1,
+        projectAddress: item.projectAddress
       });
-
-      for (let i = 0; i < this.cartItems.length; i++) {
-        const cartItem = this.cartItems[i];
-        const itemFiles = this.fileTransferService.getCartItemFiles(cartItem.id);
-
-        if (itemFiles.length > 0) {
-          this.ngZone.run(() => {
-            this.uploadProgress = `Uploading files for item ${i + 1}/${this.cartItems.length}...`;
-            this.cdr.detectChanges();
-          });
-
-          try {
-            const urls = await this.storageService.uploadMultipleFiles(
-              itemFiles, 'site-images', user.uid!, createdOrderId
-            );
-            orderItems[i].siteImages = urls.map((url, j) => ({ url, name: itemFiles[j].name }));
-          } catch (uploadError) {
-            this.uploadWarning = 'Your order was placed, but some files failed to upload. Please contact support if needed.';
-          }
-        }
+      if (!emailResult.success && !this.uploadWarning) {
+        this.uploadWarning = 'Order placed, but the admin notification email could not be sent.';
       }
-
-      try {
-        await this.orderService.updateOrder(createdOrderId, { items: orderItems });
-      } catch (err) {
-        if (!this.uploadWarning) {
-          this.uploadWarning = 'Order placed, but file references could not be saved. Please contact support.';
-        }
-      }
-
     }
+
+    this.orderNumbers = createdOrderNumbers;
+    this.orderIds = createdOrderIds;
 
     // Clear all session data and files
     this.fileTransferService.clear();
@@ -300,20 +306,6 @@ export class OrderReview implements OnInit {
     sessionStorage.removeItem('cartCheckout');
     sessionStorage.removeItem('orderData');
     sessionStorage.removeItem('selectedStructureType');
-
-    // Send email notification to admin
-    const firstItemAddress = orderItems[0]?.projectAddress || 'Multiple addresses';
-    const emailResult = await this.emailNotificationService.sendNewOrderNotification({
-      orderNumber: this.orderNumber,
-      customerName: orderData.customerName,
-      customerEmail: orderData.customerEmail,
-      totalPrice: orderData.totalPrice,
-      itemCount: orderItems.length,
-      projectAddress: firstItemAddress
-    });
-    if (!emailResult.success && !this.uploadWarning) {
-      this.uploadWarning = 'Order placed, but the admin notification email could not be sent.';
-    }
 
     this.ngZone.run(() => {
       this.loading = false;
@@ -325,7 +317,9 @@ export class OrderReview implements OnInit {
   }
 
   goToOrderDetails(): void {
-    if (this.orderId) {
+    if (this.orderIds.length > 0) {
+      this.router.navigate(['/dashboard/customer/orders']);
+    } else if (this.orderId) {
       this.router.navigate(['/dashboard/customer/orders', this.orderId]);
     } else {
       this.router.navigate(['/dashboard/customer/orders']);

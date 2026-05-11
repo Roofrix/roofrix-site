@@ -216,8 +216,13 @@
             <polyline points="22 4 12 14.01 9 11.01"></polyline>
           </svg>
         </div>
-        <p class="order-number">Order Number: <strong>{{ orderNumber }}</strong></p>
-        <p class="thank-you">We will process your order shortly.</p>
+        <p class="order-number" *ngIf="orderNumbers.length > 0">
+          Order Numbers: <strong>{{ orderNumbers.join(', ') }}</strong>
+        </p>
+        <p class="order-number" *ngIf="orderNumbers.length === 0">
+          Order Number: <strong>{{ orderNumber }}</strong>
+        </p>
+        <p class="thank-you">We will process your order{{ orderNumbers.length > 1 ? 's' : '' }} shortly.</p>
 
         <div class="alert alert-warning" *ngIf="uploadWarning">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -229,7 +234,7 @@
         </div>
 
         <div class="confirmation-actions">
-          <button class="btn-primary" (click)="goToOrderDetails()">View Order Details</button>
+          <button class="btn-primary" (click)="goToOrderDetails()">{{ orderIds.length > 0 ? 'View Orders' : 'View Order Details' }}</button>
           <button class="btn-secondary" (click)="goToOrders()">View All Orders</button>
         </div>
       </div>

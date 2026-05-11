@@ -13,35 +13,9 @@
       <p class="hero-trust">Trusted by Industry Professionals</p>
 
       <div class="actions">
-        <div class="order-dropdown-wrapper">
-          <button class="primary" (click)="toggleOrderMenu()">
-            Order Now
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-          <div class="order-dropdown" *ngIf="showOrderMenu">
-            <div class="dropdown-header">Select Structure Type</div>
-            <button (click)="selectStructure('basic')" class="dropdown-option">
-              <div class="option-info">
-                <span class="option-name">Basic Structure</span>
-                <span class="option-size">&lt;30 SQs</span>
-              </div>
-            </button>
-            <button (click)="selectStructure('moderate')" class="dropdown-option">
-              <div class="option-info">
-                <span class="option-name">Moderate Structure</span>
-                <span class="option-size">30 - 60 SQs</span>
-              </div>
-            </button>
-            <button (click)="selectStructure('complex')" class="dropdown-option">
-              <div class="option-info">
-                <span class="option-name">Complex/Commercial</span>
-                <span class="option-size">&gt;60 SQs</span>
-              </div>
-            </button>
-          </div>
-        </div>
+        <button class="primary" (click)="selectStructure('basic')">
+          Order Now
+        </button>
         <button class="secondary" (click)="scrollToHowItWorks()">See How it Works</button>
       </div>
     </div>
