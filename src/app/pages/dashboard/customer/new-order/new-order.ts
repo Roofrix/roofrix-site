@@ -751,16 +751,25 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
     this.structureTypeError = '';
     this.fileError = '';
 
-    // Clear marker from map
+    // Clear marker from map and reset zoom
     if (this.marker) {
       this.marker.setMap(null);
       this.marker = null;
     }
+    if (this.map) {
+      this.map.setCenter({ lat: 39.8283, lng: -98.5795 });
+      this.map.setZoom(4);
+    }
 
-    // Reset all form fields
+    // Clear native address input (autocomplete doesn't update via formControl)
+    if (this.addressInput?.nativeElement) {
+      this.addressInput.nativeElement.value = '';
+    }
+
+    // Reset all form fields, re-select default report type
     this.orderForm.patchValue({
       address: '',
-      reportType: '',
+      reportType: this.reportTypes.length > 0 ? this.reportTypes[0].id : '',
       structureType: '',
       primaryPitch: '',
       secondaryPitch: '',
@@ -772,8 +781,12 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
     // Clear selected addons
     this.selectedAddons.clear();
 
-    // Reset files
+    // Reset files and clear native file input
     this.selectedFiles = [];
+    const fileInput = document.querySelector('.file-upload-area input[type="file"]') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
   }
 
   private markFormGroupTouched(formGroup: FormGroup): void {

@@ -205,28 +205,6 @@
   }
 }
 
-// Payment Note
-.payment-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 14px 16px;
-  background: #fef3c7;
-  border-radius: 0.5rem;
-  margin-bottom: 1.25rem;
-
-  svg {
-    stroke: #d97706;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-
-  span {
-    font-size: 13px;
-    color: #92400e;
-    line-height: 1.5;
-  }
-}
 
 // Confirm Button - uses same blue gradient as primary actions
 .btn-confirm {

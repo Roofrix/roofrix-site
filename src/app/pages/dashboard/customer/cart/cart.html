@@ -55,9 +55,31 @@
                 </div>
               </div>
 
+              <div class="detail-row" *ngIf="item.structureType">
+                <span class="detail-label">Structure Type:</span>
+                <span class="detail-value">{{ item.structureType === 'main_and_garage' ? 'Main and Garage' : 'Main' }}</span>
+              </div>
+
+              <div class="detail-row" *ngIf="item.primaryPitch">
+                <span class="detail-label">Primary Pitch:</span>
+                <span class="detail-value">{{ item.primaryPitch }}</span>
+              </div>
+
+              <div class="detail-row" *ngIf="item.secondaryPitch">
+                <span class="detail-label">Secondary Pitch:</span>
+                <span class="detail-value">{{ item.secondaryPitch }}</span>
+              </div>
+
               <div class="detail-row" *ngIf="item.specialInstructions">
                 <span class="detail-label">Instructions:</span>
                 <span class="detail-value instructions">{{ item.specialInstructions }}</span>
+              </div>
+
+              <div class="detail-row" *ngIf="getItemFiles(item.id).length > 0">
+                <span class="detail-label">Files:</span>
+                <div class="files-list">
+                  <span class="file-item" *ngFor="let file of getItemFiles(item.id)">{{ file.name }}</span>
+                </div>
               </div>
             </div>
 

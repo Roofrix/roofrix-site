@@ -58,6 +58,10 @@ export class Cart implements OnInit {
     });
   }
 
+  getItemFiles(itemId: string): File[] {
+    return this.fileTransferService.getCartItemFiles(itemId);
+  }
+
   continueShopping(): void {
     this.router.navigate(['/dashboard/customer/new-order']);
   }
