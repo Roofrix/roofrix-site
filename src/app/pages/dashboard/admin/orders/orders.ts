@@ -44,6 +44,7 @@ export class AdminOrders implements OnInit, OnDestroy {
   totalOrders = 0;
   completedCount = 0;
   inProgressCount = 0;
+  cancelledCount = 0;
 
   // Tabs, search, pagination
   activeTab: 'open' | 'completed' | 'cancelled' = 'open';
@@ -127,6 +128,7 @@ export class AdminOrders implements OnInit, OnDestroy {
     this.totalOrders = activeOrders.length;
     this.completedCount = activeOrders.filter(o => COMPLETED_STATUSES.has(o.status)).length;
     this.inProgressCount = activeOrders.filter(o => o.status === 'in_progress').length;
+    this.cancelledCount = activeOrders.filter(o => CANCELLED_STATUSES.has(o.status) || o.isDeleted).length;
   }
 
   switchTab(tab: 'open' | 'completed' | 'cancelled'): void {
@@ -436,12 +438,19 @@ export class AdminOrders implements OnInit, OnDestroy {
   getRemainingTime(order: Order): { hours: number; minutes: number; totalMs: number } {
     if (!order.createdAt) return { hours: 0, minutes: 0, totalMs: 0 };
 
-    const createdDate = order.createdAt.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
-    const now = new Date();
-    const elapsed = now.getTime() - createdDate.getTime();
+    const now = Date.now();
+    let remaining: number;
 
-    const totalAllowedMs = this.isRushOrder(order) ? 2 * 60 * 60 * 1000 : 8 * 60 * 60 * 1000;
-    const remaining = totalAllowedMs - elapsed;
+    if (order.remainingTimeMs != null && order.resumedAt) {
+      // Resumed from pause — count down from saved remaining time
+      const resumedDate = order.resumedAt.toDate ? order.resumedAt.toDate() : new Date(order.resumedAt);
+      remaining = order.remainingTimeMs - (now - resumedDate.getTime());
+    } else {
+      // First run — count down from creation
+      const createdDate = order.createdAt.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+      const totalAllowedMs = this.isRushOrder(order) ? 2 * 60 * 60 * 1000 : 8 * 60 * 60 * 1000;
+      remaining = totalAllowedMs - (now - createdDate.getTime());
+    }
 
     const absRemaining = Math.abs(remaining);
     const hours = Math.floor(absRemaining / (1000 * 60 * 60));

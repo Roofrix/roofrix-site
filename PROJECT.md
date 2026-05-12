@@ -24,8 +24,8 @@ A web platform where customers order roof measurement reports and admins manage 
 
 | Role | Access |
 |------|--------|
-| **customer** | Create orders, upload photos, view order history (Open/Completed/Cancelled tabs), cart (no cancel — admin only) |
-| **admin** | View all orders, view uploaded images/PDFs, update status (cancel/delete button hidden — commented out for future re-enable) |
+| **customer** | Create orders, upload photos, view order history (Open/Completed/Cancelled tabs, no status column), cart (no cancel — admin only) |
+| **admin** | View all orders (with address column), view uploaded images/PDFs, update status (cancel/delete button hidden — commented out for future re-enable) |
 
 ---
 
@@ -72,12 +72,12 @@ src/
       dashboard/
         customer/
           new-order/               # Order form with Google Maps
-          order-review/            # Review + confirm + file upload
-          orders/                  # Order history list (Open/Completed/Cancelled tabs, welcome header, stats, table, search, pagination)
+          order-review/            # Review + confirm + file upload (structure category hidden from UI)
+          orders/                  # Order history list (Open/Completed/Cancelled tabs, welcome header, stats, table, search, pagination, no status column)
             order-detail/          # Single order detail view (order-summary style per item, status timeline)
-          cart/                    # Shopping cart
+          cart/                    # Shopping cart (structure category hidden from UI)
         admin/
-          orders/                  # Admin order management (Open/Completed/Cancelled tabs, welcome header, stats, table, search, pagination, image gallery, exact pin map)
+          orders/                  # Admin order management (Open/Completed/Cancelled tabs, welcome header, stats, table with address column, search, pagination, image gallery, exact pin map with fixed height)
       errors/
         not-found/
   environments/
@@ -310,9 +310,9 @@ Both admin and customer orders pages split orders into three tabs using shared c
 | **Cancelled** | `cancelled` status OR any order with `isDeleted === true` |
 
 - **Both sides**: Client-side array filtering in `filterOrders()` with search and pagination
-- **Page layout**: Welcome header with user name + 3 stat cards (Total Orders, Completed, In Progress) → Order History card with tabs, search, data table, and pagination footer
+- **Page layout**: Welcome header with user name + 4 stat cards (Total Orders, Completed, In Progress, Cancelled) → Order History card with tabs, search, data table, and pagination footer
 - **Cancel order**: Button hidden on both admin and customer sides (admin HTML commented out for future re-enable). Logic preserved in TS — `deleteOrder()` sets `status: 'cancelled'` + `isDeleted: true` + `deletedAt`
-- **Stats**: Exclude `isDeleted` orders from counts
+- **Stats**: Cancelled count includes `CANCELLED_STATUSES` or `isDeleted` orders
 - **Keyboard**: All modals close on Escape key
 - **Admin timer**: Countdown timer shows time remaining (8h standard, 2h rush). Once status reaches `work_completed` or later (or `cancelled`), timer stops and shows elapsed time taken (e.g., "3h 15m") with a blue `time-completed` badge.
 
@@ -462,11 +462,12 @@ service firebase.storage {
 /dashboard/admin/orders
   -> Real-time listener on all orders (allOrdersListener)
   -> Open/Completed/Cancelled tabs
+  -> Table columns: Date, Order ID, Customer, Address, Report Type, Addons, Priority, Time, Actions
   -> Search by order number, customer name/email, address, report type, category
   -> Client-side pagination (10/25/50 per page)
   -> Click order -> view details modal (with item navigation for multi-item orders)
   -> View uploaded images (thumbnail gallery) and PDFs (download links)
-  -> Map shows exact lat/lng pin location
+  -> Map shows exact lat/lng pin location (fixed 350px height, not full panel)
   -> Change status -> dropdown shows only valid next statuses, button disabled for terminal statuses
      -> updateOrderStatus() validates transition, uses arrayUnion -> adds statusTimeline entry
   -> Cancel order -> sets status='cancelled' + timeline entry + isDeleted=true (moves to Cancelled tab)

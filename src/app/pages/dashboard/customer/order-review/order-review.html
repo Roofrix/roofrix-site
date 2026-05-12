@@ -62,14 +62,6 @@
             </div>
           </div>
 
-          <div class="detail-section" *ngIf="orderData.structureCategoryName">
-            <h3>Structure Category</h3>
-            <p class="structure-category-badge">
-              {{ orderData.structureCategoryName }}
-              <span class="sq-range" *ngIf="orderData.structureCategorySqRange">({{ orderData.structureCategorySqRange }})</span>
-            </p>
-          </div>
-
           <div class="detail-section" *ngIf="orderData.structureType">
             <h3>Structure Type</h3>
             <p>{{ orderData.structureType === 'main_and_garage' ? 'Main and Garage' : 'Main' }}</p>
@@ -157,7 +149,6 @@
             <div class="item-content">
               <h4>{{ item.projectAddress }}</h4>
               <div class="item-details-row">
-                <span class="detail-tag">{{ item.structureCategoryName }}</span>
                 <span class="detail-tag">{{ item.reportType.name }}</span>
                 <span class="detail-tag addons" *ngIf="item.selectedAddons && item.selectedAddons.length > 0">
                   +{{ item.selectedAddons.length }} addon{{ item.selectedAddons.length > 1 ? 's' : '' }}

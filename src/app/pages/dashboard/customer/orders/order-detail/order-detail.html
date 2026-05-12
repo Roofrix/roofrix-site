@@ -92,14 +92,6 @@
               </div>
             </div>
 
-            <div class="detail-section" *ngIf="item.structureCategoryName">
-              <h3>Structure Category</h3>
-              <p class="structure-category-badge">
-                {{ item.structureCategoryName }}
-                <span class="sq-range" *ngIf="item.structureCategorySqRange">({{ item.structureCategorySqRange }})</span>
-              </p>
-            </div>
-
             <div class="detail-section" *ngIf="item.structureType">
               <h3>Structure Type</h3>
               <p>{{ item.structureType === 'main_and_garage' ? 'Main and Garage' : 'Main' }}</p>

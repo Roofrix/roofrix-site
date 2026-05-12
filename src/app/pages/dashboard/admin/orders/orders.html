@@ -46,6 +46,20 @@
         <span class="stat-sublabel">Active Orders</span>
       </div>
     </div>
+    <div class="stat-card">
+      <div class="stat-icon cancelled">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="15" y1="9" x2="9" y2="15"></line>
+          <line x1="9" y1="9" x2="15" y2="15"></line>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Cancelled</span>
+        <span class="stat-count">{{ cancelledCount }}</span>
+        <span class="stat-sublabel">All time</span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -98,6 +112,7 @@
           <th>Date</th>
           <th>Order ID</th>
           <th>Customer</th>
+          <th>Address</th>
           <th>Report Type</th>
           <th>Addons</th>
           <th>Priority</th>
@@ -118,6 +133,9 @@
               <div class="customer-name">{{ order.customerName }}</div>
               <div class="customer-email">{{ order.customerEmail }}</div>
             </div>
+          </td>
+          <td>
+            <span class="address">{{ order.items?.[0]?.projectAddress || 'N/A' }}</span>
           </td>
           <td>
             <span class="report-type">{{ getReportType(order) }}</span>

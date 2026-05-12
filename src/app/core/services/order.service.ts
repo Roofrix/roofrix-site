@@ -105,6 +105,10 @@ export interface Order {
   completedAt?: any;
   workStartedAt?: any;
 
+  // Timer pause/resume
+  remainingTimeMs?: number;  // Remaining ms when order left in_progress
+  resumedAt?: any;           // Timestamp when order re-entered in_progress
+
   // Soft delete
   isDeleted?: boolean;
   deletedAt?: any;
@@ -272,9 +276,33 @@ export class OrderService {
         statusTimeline: arrayUnion(timelineEntry),
       };
 
-      // Set workStartedAt when work begins
+      // Snapshot remaining time when leaving in_progress (pause timer)
+      if (currentOrder.status === 'in_progress' && newStatus !== 'in_progress') {
+        const now = Date.now();
+        const isRush = (currentOrder.items || []).some(item =>
+          item.addons?.some(addon =>
+            addon.name?.toLowerCase().includes('rush') || addon.id?.includes('rush')
+          )
+        );
+        const totalAllowedMs = isRush ? 2 * 60 * 60 * 1000 : 8 * 60 * 60 * 1000;
+
+        let remaining: number;
+        if (currentOrder.remainingTimeMs != null && currentOrder.resumedAt) {
+          // Was paused before — calculate from last resume
+          const resumedDate = currentOrder.resumedAt.toDate ? currentOrder.resumedAt.toDate() : new Date(currentOrder.resumedAt);
+          remaining = currentOrder.remainingTimeMs - (now - resumedDate.getTime());
+        } else {
+          // First run — calculate from creation
+          const createdDate = currentOrder.createdAt.toDate ? currentOrder.createdAt.toDate() : new Date(currentOrder.createdAt);
+          remaining = totalAllowedMs - (now - createdDate.getTime());
+        }
+        updateData.remainingTimeMs = remaining;
+      }
+
+      // Set workStartedAt + resumedAt when entering in_progress
       if (newStatus === 'in_progress') {
         updateData.workStartedAt = timestamp;
+        updateData.resumedAt = timestamp;
       }
 
       if (newStatus === 'completed') {

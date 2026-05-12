@@ -97,6 +97,11 @@
     color: #f97316;
   }
 
+  &.cancelled {
+    background-color: #fef2f2;
+    color: #ef4444;
+  }
+
   @media (max-width: 768px) {
     width: 36px;
     height: 36px;

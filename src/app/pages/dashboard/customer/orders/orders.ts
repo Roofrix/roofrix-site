@@ -39,6 +39,7 @@ export class CustomerOrders implements OnInit, OnDestroy {
   totalOrders = 0;
   completedCount = 0;
   inProgressCount = 0;
+  cancelledCount = 0;
 
   // Tabs, search, pagination
   activeTab: 'open' | 'completed' | 'cancelled' = 'open';
@@ -103,6 +104,7 @@ export class CustomerOrders implements OnInit, OnDestroy {
     this.totalOrders = activeOrders.length;
     this.completedCount = activeOrders.filter(o => COMPLETED_STATUSES.has(o.status)).length;
     this.inProgressCount = activeOrders.filter(o => o.status === 'in_progress').length;
+    this.cancelledCount = activeOrders.filter(o => CANCELLED_STATUSES.has(o.status) || o.isDeleted).length;
   }
 
   switchTab(tab: 'open' | 'completed' | 'cancelled'): void {
