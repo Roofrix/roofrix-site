@@ -387,6 +387,12 @@ export class AdminOrders implements OnInit, OnDestroy {
     }
   }
 
+  async downloadAllFiles(files: {url: string, name: string}[]): Promise<void> {
+    for (const file of files) {
+      await this.downloadFile(file.url, file.name);
+    }
+  }
+
   getStatusClass(status: string): string {
     return STATUS_CLASSES[status] || 'status-pending';
   }

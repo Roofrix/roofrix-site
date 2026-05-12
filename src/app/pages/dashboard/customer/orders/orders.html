@@ -112,6 +112,7 @@
           <th>Date</th>
           <th>Order ID</th>
           <th>Report Type</th>
+          <th>Address</th>
           <th>Addons</th>
           <th>Priority</th>
           <th>Actions</th>
@@ -127,6 +128,9 @@
           </td>
           <td>
             <span class="report-type">{{ getReportType(order) }}</span>
+          </td>
+          <td>
+            <span class="address">{{ order.items?.[0]?.projectAddress || 'N/A' }}</span>
           </td>
           <td>
             <span class="addons">{{ getAddons(order) }}</span>

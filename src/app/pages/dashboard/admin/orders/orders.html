@@ -112,8 +112,8 @@
           <th>Date</th>
           <th>Order ID</th>
           <th>Customer</th>
-          <th>Address</th>
           <th>Report Type</th>
+          <th>Address</th>
           <th>Addons</th>
           <th>Priority</th>
           <th>Time</th>
@@ -135,10 +135,10 @@
             </div>
           </td>
           <td>
-            <span class="address">{{ order.items?.[0]?.projectAddress || 'N/A' }}</span>
+            <span class="report-type">{{ getReportType(order) }}</span>
           </td>
           <td>
-            <span class="report-type">{{ getReportType(order) }}</span>
+            <span class="address">{{ order.items?.[0]?.projectAddress || 'N/A' }}</span>
           </td>
           <td>
             <span class="addons">{{ getAddons(order) }}</span>
@@ -355,7 +355,17 @@
 
             <!-- Site Images -->
             <div class="site-images-section" *ngIf="item.siteImages && item.siteImages.length > 0">
-              <span class="detail-label">Uploaded Files ({{ item.siteImages.length }}):</span>
+              <div class="site-images-header">
+                <span class="detail-label">Uploaded Files ({{ item.siteImages.length }}):</span>
+                <button class="download-all-btn" (click)="downloadAllFiles(item.siteImages)" title="Download all files">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  Download
+                </button>
+              </div>
               <div class="site-images-gallery">
                 <ng-container *ngFor="let img of item.siteImages">
                   <div class="gallery-wrapper">
@@ -376,13 +386,6 @@
                       </svg>
                       <span>{{ img.name }}</span>
                     </a>
-                    <button class="download-btn" (click)="downloadFile(img.url, img.name)" title="Download {{ img.name }}">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                      </svg>
-                    </button>
                   </div>
                 </ng-container>
               </div>
