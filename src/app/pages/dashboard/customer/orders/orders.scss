@@ -336,6 +336,13 @@
     color: #3b82f6;
   }
 
+  .address {
+    display: inline-block;
+    max-width: 200px;
+    white-space: normal;
+    word-break: break-word;
+  }
+
   .date {
     color: #64748b;
   }

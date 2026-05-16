@@ -7,7 +7,7 @@
 
 // Page Header
 .page-header {
-  background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 50%, #1e3a5f 100%);
+  background: linear-gradient(90deg, #0c1b2e, #162f4f);
   padding: 2rem;
   text-align: center;
   margin-bottom: 0;
@@ -472,14 +472,14 @@ textarea {
 // Address Section with Map
 .address-section {
   .accordion-header {
-    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+    background: linear-gradient(90deg, #0c1b2e, #162f4f);
 
     .section-title {
       color: white;
 
       .section-number {
         background: white;
-        color: #0891b2;
+        color: #0c1b2e;
       }
     }
 
@@ -488,7 +488,7 @@ textarea {
     }
 
     &:hover {
-      background: linear-gradient(135deg, #0e7490 0%, #0891b2 100%);
+      background: linear-gradient(90deg, #162f4f, #0c1b2e);
     }
   }
 }
@@ -516,8 +516,8 @@ textarea {
 
       &:focus {
         background: white;
-        border-color: #0891b2;
-        box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1);
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
       }
     }
 
@@ -526,7 +526,7 @@ textarea {
       right: 0.75rem;
       top: 50%;
       transform: translateY(-50%);
-      color: #0891b2;
+      color: #3b82f6;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -574,7 +574,7 @@ textarea {
   svg {
     flex-shrink: 0;
     margin-top: 2px;
-    color: #0891b2;
+    color: #3b82f6;
   }
 
   span {
@@ -606,7 +606,7 @@ textarea {
 
 .map-instruction {
   margin: 0 0 1rem 0;
-  color: #0891b2;
+  color: #3b82f6;
   font-size: 0.875rem;
   font-style: italic;
 }
@@ -618,7 +618,7 @@ textarea {
   gap: 0.5rem;
   width: 100%;
   padding: 0.875rem 1.5rem;
-  background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   color: white;
   border: none;
   border-radius: 0.5rem;
@@ -628,9 +628,9 @@ textarea {
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: linear-gradient(135deg, #0e7490 0%, #0891b2 100%);
+    background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
   }
 
   &:disabled {

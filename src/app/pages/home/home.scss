@@ -13,7 +13,7 @@
 
 .hero .hero-content .hero-left {
   flex: 1;
-  max-width: 50%;
+  max-width: 650px;
 }
 
 .hero .hero-content .hero-left h1 {
@@ -22,6 +22,13 @@
   line-height: 1.15;
   color: #0f172a;
   margin-bottom: 24px;
+
+  .xactimate-tag {
+    font-size: 0.5em;
+    font-weight: 600;
+    color: #3b82f6;
+    white-space: nowrap;
+  }
 }
 
 .hero .hero-content .hero-left p {
@@ -187,32 +194,18 @@
   color: #64748b;
 }
 
-.hero .hero-content .hero-right {
-  flex: 1;
-  max-width: 50%;
-}
-
-.hero .hero-content .hero-right img {
-  width: 100%;
-  height: auto;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.3);
-  transform: perspective(1000px) rotateY(-5deg);
-  transition: transform 0.3s ease;
-}
-
-.hero .hero-content .hero-right img:hover {
-  transform: perspective(1000px) rotateY(0deg);
-}
-
 /* FORMAT BADGES */
 .format-badges-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
-    gap: 40px;
-    margin-top: 20px;
-    padding: 0 40px;
+  gap: 40px;
+  margin-top: 20px;
+  margin-bottom: 25px;
+  padding: 20px 40px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  width: 100%;
 }
 
 .format-badges-wrapper .decorative-dots {
@@ -251,31 +244,29 @@
   background: #d1dae4;
 }
 
-.format-badges {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-}
-
-.format-badges .badge {
+.format-line {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0;
-  background: none;
-  box-shadow: none;
-  border: none;
-  border-radius: 0;
-  min-width: auto;
-}
+  gap: 16px;
 
-.format-badges .badge-dark .badge-text,
-.format-badges .badge-light .badge-text {
-  color: #1e3a5f;
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 2px;
+  .line {
+    flex: 1;
+    height: 1px;
+    background: #cbd5e1;
+  }
+
+  .format-text {
+    color: #1e3a5f;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 3px;
+  }
+
+  .dash {
+    color: #94a3b8;
+    font-size: 22px;
+    font-weight: 400;
+  }
 }
 /* TRUSTED */
 .trusted {
@@ -330,6 +321,10 @@
   margin-bottom: 0;
 }
 
+.features .feature img.fast-turnaround {
+  width: 150px;
+}
+
 .features .feature h4 {
   font-size: 18px;
   font-weight: 700;
@@ -351,11 +346,12 @@
   gap: 80px;
   background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
   align-items: flex-start;
+  overflow: hidden;
 }
 
 .report .left {
-  flex: 1;
-  max-width: 45%;
+  flex: 0 0 45%;
+  min-width: 0;
 }
 
 .report .left h2 {
@@ -380,12 +376,13 @@
 
 .report .left .service-card {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   background: #fff;
-  padding: 28px 20px 24px;
+  padding: 20px 16px 18px;
   border-radius: 20px;
   box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
   transition: all 0.3s ease;
@@ -399,11 +396,11 @@
 }
 
 .report .left .service-card .service-icon {
-  width: 120px;
-  height: 120px;
-  border-radius: 24px;
+  width: 80px;
+  height: 80px;
+  border-radius: 18px;
   overflow: hidden;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
 }
 
@@ -423,7 +420,7 @@
 
 .report .right {
   flex: 1;
-  max-width: 55%;
+  min-width: 0;
   position: relative;
 }
 
@@ -497,44 +494,6 @@
 
 .report .right .swiper-pagination-bullet-active {
   background: #3b82f6;
-}
-
-/* EXPORT */
-.export {
-  display: flex;
-  justify-content: center;
-  gap: 24px;
-  padding: 60px 80px 100px;
-  background: linear-gradient(180deg, #ffffff, #f8fafc);
-}
-
-.export .chip {
-  padding: 18px 36px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-  font-weight: 700;
-  font-size: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  color: #475569;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.export .chip:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
-}
-
-.export .chip.active {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: #fff;
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
-}
-
-.export .chip.active:hover {
-  box-shadow: 0 12px 32px rgba(59, 130, 246, 0.5);
 }
 
 /* HOW IT WORKS */
@@ -692,25 +651,17 @@
     transform: none;
     border-radius: 12px;
   }
-                                                                .format-badges-wrapper {
-                                                                  gap: 20px;
-                                                                  padding: 0 20px;
-                                                                }
-                                
-                                                                .format-badges-wrapper .decorative-dots {
-                                                                  display: none;
-                                                                }
-                                                                .format-badges {
-    gap: 12px;
-    flex-wrap: wrap;
-    justify-content: center;
+  .format-badges-wrapper {
+    gap: 20px;
+    padding: 0 20px;
   }
-  .format-badges .badge {
-    min-width: auto;
-    padding: 0;
+  .format-badges-wrapper .decorative-dots {
+    display: none;
   }
-  .format-badges .badge-dark .badge-text,
-  .format-badges .badge-light .badge-text {
+  .format-line .format-text {
+    font-size: 16px;
+  }
+  .format-line .dash {
     font-size: 16px;
   }
   .trusted {
@@ -752,7 +703,7 @@
   }
   .report .left,
   .report .right {
-    max-width: 100% !important;
+    max-width: 100%;
     width: 100%;
     flex: none;
   }
@@ -770,11 +721,11 @@
     padding: 20px 16px 18px;
   }
   .report .left .service-card .service-icon {
-    width: 90px;
-    height: 90px;
+    width: 70px;
+    height: 70px;
     padding: 0;
-    margin-bottom: 14px;
-    border-radius: 20px;
+    margin-bottom: 12px;
+    border-radius: 16px;
   }
   .report .left .service-card h4 {
     font-size: 14px;
@@ -782,27 +733,18 @@
   .report .right .header h2 {
     font-size: 24px;
   }
-                .report .right .swiper-button-prev,
-                .report .right .swiper-button-next {
-                  width: 24px;
-                  height: 24px;
+  .report .right .swiper-button-prev,
+  .report .right .swiper-button-next {
+    width: 24px;
+    height: 24px;
   }
-                .report .right .swiper-button-prev::after,
-                .report .right .swiper-button-next::after {
-                  font-size: 9px;
+  .report .right .swiper-button-prev::after,
+  .report .right .swiper-button-next::after {
+    font-size: 9px;
   }
-                .report .right .swiper-pagination-bullet {
+  .report .right .swiper-pagination-bullet {
     width: 10px;
     height: 10px;
-  }
-  .export {
-    padding: 30px 20px 60px;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .export .chip {
-    padding: 12px 24px;
-    font-size: 13px;
   }
   .how-it-works {
     padding: 60px 20px 80px;
@@ -839,19 +781,14 @@
   .hero .hero-content .hero-left p {
     font-size: 15px;
   }
-                                                                .format-badges-wrapper {
-                                                                  gap: 10px;
-                                                                  padding: 0 16px;
-                                                                }
-                                                                .format-badges {
-    gap: 8px;
+  .format-badges-wrapper {
+    gap: 10px;
+    padding: 0 16px;
   }
-  .format-badges .badge {
-    min-width: auto;
-    padding: 0;
+  .format-line .format-text {
+    font-size: 14px;
   }
-  .format-badges .badge-dark .badge-text,
-  .format-badges .badge-light .badge-text {
+  .format-line .dash {
     font-size: 14px;
   }
   .features {
@@ -881,37 +818,35 @@
     font-size: 14px;
   }
   .report .left .services-list {
-    flex-direction: row;
-    gap: 10px;
+    flex-direction: column;
+    gap: 12px;
   }
   .report .left .service-card {
-    padding: 16px 12px 14px;
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    padding: 14px 16px;
+    gap: 12px;
   }
   .report .left .service-card .service-icon {
-    width: 70px;
-    height: 70px;
+    width: 46px;
+    height: 46px;
     padding: 0;
-    margin-bottom: 10px;
-    border-radius: 16px;
+    margin-bottom: 0;
+    border-radius: 12px;
+    flex-shrink: 0;
   }
   .report .left .service-card h4 {
-    font-size: 12px;
+    font-size: 13px;
   }
-                .report .right .swiper-button-prev,
-                .report .right .swiper-button-next {
-                  width: 22px;
-                  height: 22px;
+  .report .right .swiper-button-prev,
+  .report .right .swiper-button-next {
+    width: 22px;
+    height: 22px;
   }
-                .report .right .swiper-button-prev::after,
-                .report .right .swiper-button-next::after {
-                  font-size: 8px;
-  }
-  .export {
-    padding: 24px 16px 48px;
-  }
-  .export .chip {
-    padding: 10px 20px;
-    font-size: 12px;
+  .report .right .swiper-button-prev::after,
+  .report .right .swiper-button-next::after {
+    font-size: 8px;
   }
   .how-it-works {
     padding: 40px 16px 60px;

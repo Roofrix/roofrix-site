@@ -163,6 +163,21 @@ export class AdminOrders implements OnInit, OnDestroy {
       );
     }
 
+    // Sort: open tab by urgency, completed/cancelled by latest first
+    if (this.activeTab === 'open') {
+      filtered.sort((a, b) => {
+        const aTime = this.getRemainingTime(a).totalMs;
+        const bTime = this.getRemainingTime(b).totalMs;
+        return aTime - bTime;
+      });
+    } else {
+      filtered.sort((a, b) => {
+        const aDate = a.createdAt?.toMillis?.() || 0;
+        const bDate = b.createdAt?.toMillis?.() || 0;
+        return bDate - aDate;
+      });
+    }
+
     this.filteredOrders = filtered;
     this.applyPagination();
   }
@@ -364,10 +379,10 @@ export class AdminOrders implements OnInit, OnDestroy {
   getMapUrl(address: string, location?: { lat: number; lng: number } | null): SafeResourceUrl {
     let url: string;
     if (location?.lat && location?.lng) {
-      url = `https://www.google.com/maps?q=${location.lat},${location.lng}&z=18&output=embed`;
+      url = `https://www.google.com/maps?q=${location.lat},${location.lng}&z=18&t=k&output=embed`;
     } else {
       const encodedAddress = encodeURIComponent(address);
-      url = `https://www.google.com/maps?q=${encodedAddress}&output=embed`;
+      url = `https://www.google.com/maps?q=${encodedAddress}&t=k&output=embed`;
     }
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }

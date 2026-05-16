@@ -2,7 +2,7 @@
 <div class="welcome-section">
   <div class="welcome-text">
     <h1 class="welcome-title">Welcome back, {{ userName }}! <span class="wave">👋</span></h1>
-    <p class="welcome-subtitle">Here's what's happening with your rooftop projects.</p>
+    <p class="welcome-subtitle">Here's what's happening with your roof and wall reports.</p>
   </div>
   <div class="stats-cards">
     <div class="stat-card">
@@ -17,7 +17,7 @@
       <div class="stat-info">
         <span class="stat-label">Total Orders</span>
         <span class="stat-count">{{ totalOrders }}</span>
-        <span class="stat-sublabel">Live Orders</span>
+        <span class="stat-sublabel">All Time</span>
       </div>
     </div>
     <div class="stat-card">
@@ -30,7 +30,7 @@
       <div class="stat-info">
         <span class="stat-label">Completed</span>
         <span class="stat-count">{{ completedCount }}</span>
-        <span class="stat-sublabel">All time</span>
+        <span class="stat-sublabel">Delivered</span>
       </div>
     </div>
     <div class="stat-card">
@@ -43,7 +43,7 @@
       <div class="stat-info">
         <span class="stat-label">In Progress</span>
         <span class="stat-count">{{ inProgressCount }}</span>
-        <span class="stat-sublabel">Active Orders</span>
+        <span class="stat-sublabel">Live Orders</span>
       </div>
     </div>
     <div class="stat-card">
@@ -57,7 +57,7 @@
       <div class="stat-info">
         <span class="stat-label">Cancelled</span>
         <span class="stat-count">{{ cancelledCount }}</span>
-        <span class="stat-sublabel">All time</span>
+        <span class="stat-sublabel">Closed</span>
       </div>
     </div>
   </div>
@@ -130,7 +130,7 @@
             <span class="report-type">{{ getReportType(order) }}</span>
           </td>
           <td>
-            <span class="address">{{ order.items?.[0]?.projectAddress || 'N/A' }}</span>
+            <span class="address">{{ order.items[0]?.projectAddress || 'N/A' }}</span>
           </td>
           <td>
             <span class="addons">{{ getAddons(order) }}</span>
