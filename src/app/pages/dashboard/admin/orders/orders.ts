@@ -1,7 +1,7 @@
-import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone, HostListener } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+declare var google: any;
 import { Subscription } from 'rxjs';
 import { OrderService, Order, OrderStatus } from '../../../../core/services/order.service';
 import { UserService } from '../../../../core/services/user.service';
@@ -30,7 +30,6 @@ export class AdminOrders implements OnInit, OnDestroy {
   private storageService = inject(StorageService);
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
-  private sanitizer = inject(DomSanitizer);
   private ordersSubscription: Subscription | null = null;
 
   orders: Order[] = [];
@@ -63,7 +62,10 @@ export class AdminOrders implements OnInit, OnDestroy {
   showDetailsModal = false;
   detailsOrder: Order | null = null;
   currentItemIndex = 0;
-  cachedMapUrl: SafeResourceUrl | null = null;
+  @ViewChild('adminMapElement') adminMapElement!: ElementRef;
+  private adminMap: any = null;
+  private adminMarker: any = null;
+  hasMapLocation = false;
 
   // Delete modal
   showDeleteModal = false;
@@ -276,15 +278,18 @@ export class AdminOrders implements OnInit, OnDestroy {
   openDetailsModal(order: Order): void {
     this.detailsOrder = order;
     this.currentItemIndex = 0;
-    this.updateCachedMapUrl();
+    this.updateMapLocation();
     this.showDetailsModal = true;
+    setTimeout(() => this.initAdminMap(), 100);
   }
 
   closeDetailsModal(): void {
     this.showDetailsModal = false;
     this.detailsOrder = null;
     this.currentItemIndex = 0;
-    this.cachedMapUrl = null;
+    this.adminMap = null;
+    this.adminMarker = null;
+    this.hasMapLocation = false;
   }
 
   getCurrentItem(): any {
@@ -297,23 +302,65 @@ export class AdminOrders implements OnInit, OnDestroy {
   previousItem(): void {
     if (this.currentItemIndex > 0) {
       this.currentItemIndex--;
-      this.updateCachedMapUrl();
+      this.updateMapLocation();
+      setTimeout(() => this.initAdminMap(), 100);
     }
   }
 
   nextItem(): void {
     if (this.detailsOrder?.items && this.currentItemIndex < this.detailsOrder.items.length - 1) {
       this.currentItemIndex++;
-      this.updateCachedMapUrl();
+      this.updateMapLocation();
+      setTimeout(() => this.initAdminMap(), 100);
     }
   }
 
-  private updateCachedMapUrl(): void {
+  private updateMapLocation(): void {
     const item = this.getCurrentItem();
-    if (item?.projectAddress || item?.location) {
-      this.cachedMapUrl = this.getMapUrl(item.projectAddress, item.location);
+    this.hasMapLocation = !!(item?.projectAddress || item?.location);
+  }
+
+  private initAdminMap(): void {
+    const item = this.getCurrentItem();
+    if (!item || !this.adminMapElement?.nativeElement) return;
+
+    const location = item.location?.lat && item.location?.lng
+      ? { lat: item.location.lat, lng: item.location.lng }
+      : null;
+
+    if (!location && !item.projectAddress) return;
+
+    const initWithCenter = (center: { lat: number; lng: number }) => {
+      this.adminMap = new google.maps.Map(this.adminMapElement.nativeElement, {
+        center,
+        zoom: 18,
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        mapTypeControl: true,
+        mapTypeControlOptions: {
+          style: google.maps.MapTypeControlStyle.DEFAULT,
+          mapTypeIds: [google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.HYBRID]
+        },
+        zoomControl: true,
+        streetViewControl: false,
+        fullscreenControl: false
+      });
+
+      this.adminMarker = new google.maps.Marker({
+        position: center,
+        map: this.adminMap
+      });
+    };
+
+    if (location) {
+      initWithCenter(location);
     } else {
-      this.cachedMapUrl = null;
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ address: item.projectAddress }, (results: any, status: any) => {
+        if (status === 'OK' && results[0]) {
+          const pos = results[0].geometry.location;
+          this.ngZone.run(() => initWithCenter({ lat: pos.lat(), lng: pos.lng() }));
+        }
+      });
     }
   }
 
@@ -376,16 +423,6 @@ export class AdminOrders implements OnInit, OnDestroy {
     this.showSnackbar = false;
   }
 
-  getMapUrl(address: string, location?: { lat: number; lng: number } | null): SafeResourceUrl {
-    let url: string;
-    if (location?.lat && location?.lng) {
-      url = `https://www.google.com/maps?q=${location.lat},${location.lng}&z=18&t=k&output=embed`;
-    } else {
-      const encodedAddress = encodeURIComponent(address);
-      url = `https://www.google.com/maps?q=${encodedAddress}&t=k&output=embed`;
-    }
-    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
-  }
 
   getFileType(name: string): 'image' | 'pdf' | 'other' {
     const lower = name.toLowerCase();

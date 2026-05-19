@@ -395,16 +395,7 @@
           <!-- Right Side - Map -->
           <div class="details-right">
             <div class="map-container">
-              <iframe
-                *ngIf="cachedMapUrl"
-                [src]="cachedMapUrl"
-                width="100%"
-                height="100%"
-                style="border:0;"
-                allowfullscreen=""
-                loading="lazy"
-                referrerpolicy="no-referrer-when-downgrade">
-              </iframe>
+              <div #adminMapElement class="google-map" *ngIf="hasMapLocation"></div>
               <div class="map-placeholder" *ngIf="!item.projectAddress && !item.location">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>

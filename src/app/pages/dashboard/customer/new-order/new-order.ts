@@ -305,11 +305,11 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
       // Default location (USA center)
       const defaultCenter = { lat: 39.8283, lng: -98.5795 };
 
-      // Initialize map with satellite view
+      // Initialize map with street view
       this.map = new google.maps.Map(this.mapElement.nativeElement, {
         center: defaultCenter,
         zoom: 4,
-        mapTypeId: google.maps.MapTypeId.HYBRID,
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
         mapTypeControl: true,
         mapTypeControlOptions: {
           style: google.maps.MapTypeControlStyle.DEFAULT,
