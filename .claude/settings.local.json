@@ -16,7 +16,15 @@
       "Bash(firebase hosting:sites:get:*)",
       "Bash(nslookup:*)",
       "Bash(ls:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r \"createOrder\\\\|addToCart\" '/d/New folder/roofrix-site/src' --include=*.ts)",
+      "Bash(npx ng:*)",
+      "Read(//d//**)",
+      "Bash(rm -rf public/*.js public/*.css public/*.html)",
+      "Bash(cp -r dist/roofrix-site/browser/* public/)",
+      "Bash(sed 's/.*@media[^0-9]*//')",
+      "Bash(sed 's/[^0-9].*$//')"
     ]
   }
 }
