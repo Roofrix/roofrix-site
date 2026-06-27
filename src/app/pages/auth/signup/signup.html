@@ -35,9 +35,12 @@
           id="email"
           formControlName="email"
           placeholder="you@example.com"
-          [class.error]="hasError('email', 'required') || hasError('email', 'email')"
+          [class.error]="hasError('email', 'required') || hasError('email', 'email') || hasError('email', 'disposableEmail')"
           autocomplete="email"
         />
+        <span class="checking-message" *ngIf="signUpForm.get('email')?.pending">
+          Verifying email...
+        </span>
         <span class="error-message" *ngIf="getErrorMessage('email')">
           {{ getErrorMessage('email') }}
         </span>
@@ -125,7 +128,7 @@
       <button
         type="submit"
         class="submit-button"
-        [disabled]="loading"
+        [disabled]="loading || signUpForm.get('email')?.pending"
       >
         <span *ngIf="!loading">Create Account</span>
         <span *ngIf="loading">Creating Account...</span>

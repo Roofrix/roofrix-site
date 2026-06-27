@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { passwordStrengthValidator, passwordMatchValidator, validatePassword, PasswordValidation } from '../../../core/utils/validators';
+import { passwordStrengthValidator, passwordMatchValidator, validatePassword, PasswordValidation, disposableEmailValidator } from '../../../core/utils/validators';
 
 @Component({
   selector: 'app-signup',
@@ -30,7 +30,7 @@ export class SignUp implements OnInit {
     // Initialize form
     this.signUpForm = this.fb.group({
       name: ['', [Validators.required]],
-      email: ['', [Validators.required, Validators.email]],
+      email: ['', [Validators.required, Validators.email], [disposableEmailValidator()]],
       password: ['', [Validators.required, Validators.minLength(8), passwordStrengthValidator()]],
       confirmPassword: ['', [Validators.required, passwordMatchValidator('password')]],
       acceptTerms: [false, [Validators.requiredTrue]]
@@ -158,6 +158,9 @@ export class SignUp implements OnInit {
       }
       if (field.hasError('email')) {
         return 'Please enter a valid email address';
+      }
+      if (field.hasError('disposableEmail')) {
+        return 'Temporary or disposable email addresses are not allowed';
       }
     }
 

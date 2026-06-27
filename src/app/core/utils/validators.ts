@@ -1,4 +1,6 @@
-import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
+import { AbstractControl, ValidationErrors, ValidatorFn, AsyncValidatorFn } from '@angular/forms';
+import { Observable, of, timer } from 'rxjs';
+import { map, switchMap, catchError } from 'rxjs/operators';
 
 // Password validation result interface
 export interface PasswordValidation {
@@ -15,6 +17,36 @@ export function validateEmail(email: string): boolean {
 
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   return emailRegex.test(email.trim());
+}
+
+/**
+ * Async Angular validator that checks disposable emails via Debounce API.
+ * Debounces 500ms to avoid excessive API calls while typing.
+ * On API failure, allows the email through (fails open).
+ */
+export function disposableEmailValidator(): AsyncValidatorFn {
+  return (control: AbstractControl): Observable<ValidationErrors | null> => {
+    const email = control.value;
+    if (!email || !email.includes('@')) return of(null);
+
+    return timer(500).pipe(
+      switchMap(() =>
+        new Observable<ValidationErrors | null>(observer => {
+          fetch(`https://disposable.debounce.io/?email=${encodeURIComponent(email.trim())}`)
+            .then(res => res.json())
+            .then(data => {
+              observer.next(data?.disposable === 'true' ? { disposableEmail: true } : null);
+              observer.complete();
+            })
+            .catch(() => {
+              observer.next(null);
+              observer.complete();
+            });
+        })
+      ),
+      catchError(() => of(null))
+    );
+  };
 }
 
 /**
