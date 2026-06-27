@@ -309,12 +309,14 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
       this.map = new google.maps.Map(this.mapElement.nativeElement, {
         center: defaultCenter,
         zoom: 4,
-        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        mapTypeId: google.maps.MapTypeId.HYBRID,
         mapTypeControl: true,
         mapTypeControlOptions: {
           style: google.maps.MapTypeControlStyle.DEFAULT,
-          mapTypeIds: [google.maps.MapTypeId.HYBRID, google.maps.MapTypeId.ROADMAP]
+          mapTypeIds: [google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.SATELLITE, google.maps.MapTypeId.HYBRID, google.maps.MapTypeId.TERRAIN]
         },
+        tilt: 0,
+        rotateControl: true,
         zoomControl: true,
         streetViewControl: false,
         fullscreenControl: false

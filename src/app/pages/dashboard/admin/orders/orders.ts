@@ -334,12 +334,14 @@ export class AdminOrders implements OnInit, OnDestroy {
       this.adminMap = new google.maps.Map(this.adminMapElement.nativeElement, {
         center,
         zoom: 18,
-        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        mapTypeId: google.maps.MapTypeId.HYBRID,
         mapTypeControl: true,
         mapTypeControlOptions: {
           style: google.maps.MapTypeControlStyle.DEFAULT,
-          mapTypeIds: [google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.HYBRID]
+          mapTypeIds: [google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.SATELLITE, google.maps.MapTypeId.HYBRID, google.maps.MapTypeId.TERRAIN]
         },
+        tilt: 0,
+        rotateControl: true,
         zoomControl: true,
         streetViewControl: false,
         fullscreenControl: false
