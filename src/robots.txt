@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /signin
+Disallow: /signup
+Disallow: /verify-email
+Disallow: /forgot-password
+
+Sitemap: https://roofrix.com/sitemap.xml
