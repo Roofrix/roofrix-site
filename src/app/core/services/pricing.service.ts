@@ -52,6 +52,7 @@ export class PricingService {
   private firestoreService = inject(FirestoreService);
   private prices: { [key in StructureCategoryId]?: FirestoreCategoryPricing } = {};
   private loaded = false;
+  private readonly CACHE_KEY = 'roofrix_pricing_cache';
 
   // Hardcoded: categories
   private readonly CATEGORIES: StructureCategory[] = [
@@ -104,18 +105,36 @@ export class PricingService {
   async loadPricing(): Promise<void> {
     if (this.loaded) return;
 
+    // Try sessionStorage cache first for instant load
+    try {
+      const cached = sessionStorage.getItem(this.CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        for (const key of ['basic', 'moderate', 'complex'] as StructureCategoryId[]) {
+          if (parsed[key]) {
+            this.prices[key] = parsed[key];
+          }
+        }
+        this.loaded = true;
+      }
+    } catch {}
+
+    // Fetch from Firestore (updates cache, or loads if cache was empty)
     try {
       const doc = await this.firestoreService.getDocument<any>('system', 'order');
       if (doc) {
+        const freshPrices: any = {};
         for (const key of ['basic', 'moderate', 'complex'] as StructureCategoryId[]) {
           if (doc[key]) {
-            this.prices[key] = {
+            freshPrices[key] = {
               reportTypes: doc[key].reportTypes || [],
               addons: doc[key].addons || []
             };
           }
         }
+        this.prices = freshPrices;
         this.loaded = true;
+        sessionStorage.setItem(this.CACHE_KEY, JSON.stringify(freshPrices));
       }
     } catch (err) {
     }

@@ -17,6 +17,7 @@ import {
 import { User } from '../models/user.interface';
 import { getFirebaseErrorMessage } from '../utils/validators';
 import { UserService } from './user.service';
+import { PricingService } from './pricing.service';
 import { FirebaseAppService } from './firebase-app.service';
 
 @Injectable({
@@ -25,6 +26,7 @@ import { FirebaseAppService } from './firebase-app.service';
 export class AuthService {
   private router = inject(Router);
   private userService = inject(UserService);
+  private pricingService = inject(PricingService);
   private firebaseAppService = inject(FirebaseAppService);
   private auth: Auth;
 
@@ -60,6 +62,9 @@ export class AuthService {
         };
         this.currentUserSubject.next(user);
         this.isAuthenticatedSubject.next(true);
+        if (firebaseUser.emailVerified) {
+          this.pricingService.loadPricing();
+        }
       } else {
         this.currentUserSubject.next(null);
         this.isAuthenticatedSubject.next(false);
