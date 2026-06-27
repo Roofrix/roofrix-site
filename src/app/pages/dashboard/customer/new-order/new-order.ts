@@ -116,13 +116,13 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
   previewFileName = '';
 
   private sampleFileMap: { [key: string]: { path: string; isImage: boolean } } = {
-    'roof_xml_only': { path: 'assets/order/roof xml only.jpeg', isImage: true },
-    'roof_esx_only': { path: 'assets/order/roof esx only.jpeg', isImage: true },
+    'roof_xml_only': { path: 'assets/order/roof xml only.webp', isImage: true },
+    'roof_esx_only': { path: 'assets/order/roof esx only.webp', isImage: true },
     'roof_esx_pdf':  { path: 'assets/order/roof esx+pdf.pdf', isImage: false },
     'roof_xml_pdf':  { path: 'assets/order/roof xml+pdf.pdf', isImage: false },
-    'wall_esx_x1':   { path: 'assets/order/wall esx only (x1).jpeg', isImage: true },
+    'wall_esx_x1':   { path: 'assets/order/wall esx only (x1).webp', isImage: true },
     'wall_esx_pdf_x1': { path: 'assets/order/wall esx+pdf(x1).pdf', isImage: false },
-    'wall_esx_x2':   { path: 'assets/order/wall esx only(x2).jpeg', isImage: true },
+    'wall_esx_x2':   { path: 'assets/order/wall esx only(x2).webp', isImage: true },
     'wall_esx_pdf_x2': { path: 'assets/order/wall esx+pdf(x2).pdf', isImage: false },
   };
 
@@ -285,9 +285,9 @@ export class NewOrder implements OnInit, AfterViewInit, OnDestroy {
       this.initGoogleMap();
       return;
     }
-    // Wait for the async script callback
-    if ((window as any).__googleMapsReady) {
-      await (window as any).__googleMapsReady;
+    // Trigger lazy load and wait for it
+    if ((window as any).__loadGoogleMaps) {
+      await (window as any).__loadGoogleMaps();
       this.initGoogleMap();
     }
   }

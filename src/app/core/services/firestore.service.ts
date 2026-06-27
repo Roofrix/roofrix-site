@@ -25,24 +25,18 @@ import {
   runTransaction
 } from 'firebase/firestore';
 import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
-import { initializeApp, getApp } from 'firebase/app';
+import { inject } from '@angular/core';
+import { FirebaseAppService } from './firebase-app.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class FirestoreService {
+  private firebaseAppService = inject(FirebaseAppService);
   private db: Firestore;
 
   constructor() {
-    // Use the default Firebase app (shared with auth)
-    let app;
-    try {
-      app = initializeApp(environment.firebase);
-    } catch {
-      app = getApp();
-    }
-    this.db = getFirestore(app);
+    this.db = getFirestore(this.firebaseAppService.app);
   }
 
   // ===== GENERIC CRUD OPERATIONS =====

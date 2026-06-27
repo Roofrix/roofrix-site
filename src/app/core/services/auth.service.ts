@@ -2,7 +2,6 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, from, of } from 'rxjs';
 import { map, catchError, switchMap } from 'rxjs/operators';
-import { initializeApp, FirebaseApp } from 'firebase/app';
 import {
   getAuth,
   Auth,
@@ -15,11 +14,10 @@ import {
   UserCredential,
   User as FirebaseUser
 } from 'firebase/auth';
-import { environment } from '../../../environments/environment';
 import { User } from '../models/user.interface';
 import { getFirebaseErrorMessage } from '../utils/validators';
 import { UserService } from './user.service';
-import { PricingService } from './pricing.service';
+import { FirebaseAppService } from './firebase-app.service';
 
 @Injectable({
   providedIn: 'root'
@@ -27,8 +25,7 @@ import { PricingService } from './pricing.service';
 export class AuthService {
   private router = inject(Router);
   private userService = inject(UserService);
-  private pricingService = inject(PricingService);
-  private firebaseApp: FirebaseApp;
+  private firebaseAppService = inject(FirebaseAppService);
   private auth: Auth;
 
   // Observable to track current user
@@ -44,9 +41,7 @@ export class AuthService {
   public loading$: Observable<boolean> = this.loadingSubject.asObservable();
 
   constructor() {
-    // Initialize Firebase
-    this.firebaseApp = initializeApp(environment.firebase);
-    this.auth = getAuth(this.firebaseApp);
+    this.auth = getAuth(this.firebaseAppService.app);
 
     // Listen to auth state changes
     this.initAuthStateListener();
@@ -65,9 +60,6 @@ export class AuthService {
         };
         this.currentUserSubject.next(user);
         this.isAuthenticatedSubject.next(true);
-        if (firebaseUser.emailVerified) {
-          this.pricingService.loadPricing();
-        }
       } else {
         this.currentUserSubject.next(null);
         this.isAuthenticatedSubject.next(false);

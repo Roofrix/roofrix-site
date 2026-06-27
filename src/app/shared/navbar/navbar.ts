@@ -1,10 +1,10 @@
-import { Component, inject, ViewEncapsulation, HostListener } from '@angular/core';
+import { Component, inject, ViewEncapsulation, HostListener, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { UserService, UserProfile } from '../../core/services/user.service';
 import { CartService } from '../../core/services/cart.service';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { User } from '../../core/models/user.interface';
 
 @Component({
@@ -15,11 +15,12 @@ import { User } from '../../core/models/user.interface';
   styleUrls: ['./navbar.scss'],
   encapsulation: ViewEncapsulation.None,
 })
-export class Navbar {
+export class Navbar implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private userService = inject(UserService);
   private router = inject(Router);
   private cartService = inject(CartService);
+  private authSub?: Subscription;
 
   currentUser$: Observable<User | null> = this.authService.currentUser$;
   isAuthenticated$: Observable<boolean> = this.authService.isAuthenticated$;
@@ -28,14 +29,22 @@ export class Navbar {
   showUserMenu = false;
   showOrderMenu = false;
   mobileMenuOpen = false;
+  private currentProfileUid: string | null = null;
 
   ngOnInit(): void {
-    // Load user profile when authenticated
-    this.currentUser$.subscribe(user => {
-      if (user?.uid) {
+    this.authSub = this.currentUser$.subscribe(user => {
+      if (user?.uid && user.uid !== this.currentProfileUid) {
+        this.currentProfileUid = user.uid;
         this.userProfile$ = this.userService.userProfileListener(user.uid);
+      } else if (!user) {
+        this.currentProfileUid = null;
+        this.userProfile$ = null;
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.authSub?.unsubscribe();
   }
 
   /**

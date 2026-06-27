@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, HostListener, CUSTOM_ELEMENTS_SCHEMA, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, HostListener, CUSTOM_ELEMENTS_SCHEMA, AfterViewInit, ElementRef, ViewChild, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -12,7 +12,8 @@ import { Navigation, Pagination, Autoplay } from 'swiper/modules';
   imports: [CommonModule],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './home.html',
-  styleUrl: './home.scss',
+  styleUrls: ['./home.scss'],
+  encapsulation: ViewEncapsulation.None,
 })
 export class Home implements OnInit, OnDestroy, AfterViewInit {
   private router = inject(Router);
@@ -24,26 +25,26 @@ export class Home implements OnInit, OnDestroy, AfterViewInit {
 
   // Report images
   reportImages = [
-    { src: 'assets/website/Home Page/01.png', alt: 'Report Preview 1' },
-    { src: 'assets/website/Home Page/02.png', alt: 'Report Preview 2' },
-    { src: 'assets/website/Home Page/03.png', alt: 'Report Preview 3' },
-    { src: 'assets/website/Home Page/04.png', alt: 'Report Preview 4' }
+    { src: 'assets/website/Home Page/01.webp', alt: 'Report Preview 1' },
+    { src: 'assets/website/Home Page/02.webp', alt: 'Report Preview 2' },
+    { src: 'assets/website/Home Page/03.webp', alt: 'Report Preview 3' },
+    { src: 'assets/website/Home Page/04.webp', alt: 'Report Preview 4' }
   ];
 
   // Services
   services = [
     {
-      icon: 'assets/website/Home Page/roof.png',
+      icon: 'assets/website/Home Page/roof.webp',
       title: 'Roof Sketches & Reports',
       description: 'Accurate roof measurements for insurance claims and contractors'
     },
     {
-      icon: 'assets/website/Home Page/wall.png',
+      icon: 'assets/website/Home Page/wall.webp',
       title: 'Wall Sketches & Reports',
       description: 'Detailed wall measurements for precise estimations'
     },
     {
-      icon: 'assets/website/Home Page/fence and deck.png',
+      icon: 'assets/website/Home Page/fence and deck.webp',
       title: 'Fence & Deck Reports',
       description: 'Complete fence and deck measurements and reports'
     }

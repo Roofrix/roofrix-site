@@ -14,8 +14,9 @@ import {
   UploadTaskSnapshot,
   UploadTask
 } from 'firebase/storage';
-import { getApp } from 'firebase/app';
+import { inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { FirebaseAppService } from './firebase-app.service';
 
 export interface UploadProgress {
   progress: number; // 0-100
@@ -32,12 +33,11 @@ export type StorageFolder = 'site-images' | 'design-files' | 'message-attachment
   providedIn: 'root'
 })
 export class StorageService {
+  private firebaseAppService = inject(FirebaseAppService);
   private storage: FirebaseStorage;
 
   constructor() {
-    // Use the default Firebase app (shares auth state)
-    const app = getApp();
-    this.storage = getStorage(app);
+    this.storage = getStorage(this.firebaseAppService.app);
   }
 
   /**

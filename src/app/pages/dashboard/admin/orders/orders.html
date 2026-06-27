@@ -370,7 +370,7 @@
                 <ng-container *ngFor="let img of item.siteImages">
                   <div class="gallery-wrapper">
                     <a *ngIf="getFileType(img.name) === 'image'" [href]="img.url" target="_blank" class="gallery-item image-item" [title]="img.name">
-                      <img [src]="img.url" [alt]="img.name" />
+                      <img [src]="img.url" [alt]="img.name" loading="lazy" />
                     </a>
                     <a *ngIf="getFileType(img.name) === 'pdf'" [href]="img.url" target="_blank" class="gallery-item pdf-item" [title]="img.name">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

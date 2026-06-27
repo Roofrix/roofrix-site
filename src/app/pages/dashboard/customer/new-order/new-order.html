@@ -355,7 +355,7 @@
         </button>
       </div>
       <div class="preview-body">
-        <img *ngIf="previewIsImage" [src]="previewUrl" [alt]="previewFileName" />
+        <img *ngIf="previewIsImage" [src]="previewUrl" [alt]="previewFileName" loading="lazy" />
         <iframe *ngIf="!previewIsImage" [src]="previewUrl" frameborder="0"></iframe>
       </div>
     </div>

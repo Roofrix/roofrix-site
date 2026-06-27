@@ -6,13 +6,26 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/png" href="assets/images/Logo.png">
-  <!-- Google Maps (async + callback to unblock page rendering) -->
+  <!-- Preconnect to Firebase and Google domains for faster initial load -->
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://maps.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://apis.google.com" crossorigin>
+  <!-- Google Maps loaded on-demand by google-maps-loader.service.ts -->
   <script>
     window.__googleMapsReady = new Promise(function(resolve) {
       window.__resolveGoogleMaps = resolve;
     });
+    window.__loadGoogleMaps = function() {
+      if (window.__googleMapsLoading) return window.__googleMapsReady;
+      window.__googleMapsLoading = true;
+      var s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyA7o2T6o-1uddtlc3PhDqYXi8F5rZN3om8&libraries=places,geocoding&callback=__resolveGoogleMaps';
+      s.async = true;
+      document.head.appendChild(s);
+      return window.__googleMapsReady;
+    };
   </script>
-  <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA7o2T6o-1uddtlc3PhDqYXi8F5rZN3om8&libraries=places,geocoding&callback=__resolveGoogleMaps"></script>
 </head>
 <body>
   <app-root></app-root>

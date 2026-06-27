@@ -320,7 +320,15 @@ export class AdminOrders implements OnInit, OnDestroy {
     this.hasMapLocation = !!(item?.projectAddress || item?.location);
   }
 
-  private initAdminMap(): void {
+  private async initAdminMap(): Promise<void> {
+    // Lazy-load Google Maps if not yet loaded
+    if (typeof google === 'undefined' || !google.maps) {
+      if ((window as any).__loadGoogleMaps) {
+        await (window as any).__loadGoogleMaps();
+      }
+      if (typeof google === 'undefined' || !google.maps) return;
+    }
+
     const item = this.getCurrentItem();
     if (!item || !this.adminMapElement?.nativeElement) return;
 

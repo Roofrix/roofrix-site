@@ -4,7 +4,9 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserService } from '../../../core/services/user.service';
-import { switchMap, take } from 'rxjs/operators';
+import { filter, switchMap, take } from 'rxjs/operators';
+import { from } from 'rxjs';
+import { User } from '../../../core/models/user.interface';
 
 @Component({
   selector: 'app-signin',
@@ -68,15 +70,15 @@ export class SignIn implements OnInit {
         if (!result.success) {
           throw new Error(result.error || 'Sign in failed');
         }
-        // Get current user to determine role-based redirect
-        return this.authService.currentUser$.pipe(take(1));
+        // Wait for auth state to update with non-null user
+        return this.authService.currentUser$.pipe(
+          filter((user): user is User => user !== null),
+          take(1)
+        );
       }),
       switchMap((user) => {
-        if (!user) {
-          throw new Error('User not found');
-        }
-        // Get user profile to check role
-        return this.userService.userProfileListener(user.uid).pipe(take(1));
+        // Use one-time getDoc fetch instead of real-time listener to avoid race condition
+        return from(this.userService.getUserProfile(user.uid));
       })
     ).subscribe({
       next: (profile) => {

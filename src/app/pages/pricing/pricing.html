@@ -24,7 +24,7 @@
         <div class="plan-card" [class.popular]="plan.popular" *ngFor="let plan of roofPlans">
           <span class="popular-badge" *ngIf="plan.popular">MOST POPULAR</span>
           <div class="card-illustration">
-            <img src="assets/images/pricing- roof.png" alt="Roof" />
+            <img src="assets/images/pricing- roof.webp" alt="Roof" loading="lazy" />
             <ng-container *ngIf="plan.hasPdf">
               <span class="plus-sign">+</span>
               <div class="pdf-icon">
@@ -72,7 +72,7 @@
         <div class="plan-card" [class.popular]="plan.popular" *ngFor="let plan of wallPlans">
           <span class="popular-badge" *ngIf="plan.popular">MOST POPULAR</span>
           <div class="card-illustration">
-            <img src="assets/images/pricing-wall.png" alt="Wall" />
+            <img src="assets/images/pricing-wall.webp" alt="Wall" loading="lazy" />
             <ng-container *ngIf="plan.hasPdf">
               <span class="plus-sign">+</span>
               <div class="pdf-icon">
