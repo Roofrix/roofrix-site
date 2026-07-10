@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(firebase hosting:sites:list:*)",
-      "Read(//d//**)"
+      "Read(//d//**)",
+      "Bash(find '/d/New folder/roofrix-site/src' -type f \\\\\\(-name *.env* -o -name *config* -o -name *environment* \\\\\\))",
+      "PowerShell(npm run build)",
+      "Bash(curl -sI https://roofrix.com/)",
+      "Bash(curl -sI https://roofrix.com/main-PC6BUMGQ.js)",
+      "Bash(curl -sI https://roofrix.com/cart)",
+      "Bash(curl -sI https://roofrix.com/assets/roofrix.png)"
     ]
   }
 }

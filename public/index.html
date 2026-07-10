@@ -2,19 +2,81 @@
 <html lang="en" data-beasties-container>
 <head>
   <meta charset="utf-8">
-  <title>RoofrixWeb</title>
+  <title>Aerial Roof Measurement Reports | Xactimate ESX Roof Sketches | Roofrix</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/png" href="assets/images/Logo.png">
-  <!-- Google Maps (async + callback to unblock page rendering) -->
+  <link rel="canonical" href="https://roofrix.com/">
+
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Fast, accurate aerial roof measurement reports for adjusters, contractors, and restoration companies. Xactimate ESX and PDF reports delivered within hours. Starting at just $12.">
+  <meta name="keywords" content="aerial roof measurement reports, aerial roof measurements, roof measurement reports, roof measurement service, roof measuring service, roof measurement company, Xactimate roof measurements, Xactimate roof reports, roof sketch service, roof sketch reports, ESX roof reports, roof sketch for Xactimate, roof estimating services, roof takeoff services, EagleView alternative, GAF QuickMeasure alternative, Sketch My Roof alternative, RoofScope alternative, HOVER alternative, Roofr alternative, aerial roof measurements for insurance claims, roof measurement reports for adjusters, roof measurement reports for contractors, Xactimate ESX roof sketch, roof sketch delivered in ESX format, fast roof measurement reports, same day roof measurement reports, roof measurements starting at $12, accurate roof measurements, insurance roof sketch service, remote roof measurement company, roof report with PDF and ESX, order roof measurements online, exterior wall measurements, wall measurement reports, Xactimate wall reports, wall sketch service, siding measurement reports, exterior wall estimating, wall reports for insurance claims, roof measurements for insurance adjusters, roof reports for public adjusters, roof reports for independent adjusters, roof reports for contractors, roof reports for restoration companies, roof reports for roofing companies, USA roof measurement company, roof measurement services USA, nationwide roof measurement reports, aerial roof measurements in the United States">
+  <meta name="author" content="Roofrix">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://roofrix.com/">
+  <meta property="og:title" content="Roofrix — Accurate Roof &amp; Wall Measurement Reports | Xactimate Ready">
+  <meta property="og:description" content="Fast, accurate aerial roof and wall measurement reports delivered in hours. Xactimate ready ESX, PDF &amp; XML formats. Trusted by adjusters &amp; contractors nationwide.">
+  <meta property="og:image" content="https://roofrix.com/assets/website/Home Page/Logo.webp">
+  <meta property="og:site_name" content="Roofrix">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Roofrix — Accurate Roof &amp; Wall Measurement Reports | Xactimate Ready">
+  <meta name="twitter:description" content="Fast, accurate aerial roof and wall measurement reports delivered in hours. Xactimate ready ESX, PDF &amp; XML. Trusted by adjusters &amp; contractors nationwide.">
+  <meta name="twitter:image" content="https://roofrix.com/assets/website/Home Page/Logo.webp">
+
+  <!-- Structured Data / JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Roofrix",
+    "alternateName": "Roofrix Roof Measurements",
+    "url": "https://roofrix.com"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    "name": "Roofrix",
+    "url": "https://roofrix.com",
+    "logo": "https://roofrix.com/assets/website/Home Page/Logo.webp",
+    "description": "Accurate aerial roof and wall measurement reports delivered in hours. Xactimate ready ESX, PDF & XML formats for insurance adjusters, contractors and restoration companies.",
+    "areaServed": {
+      "@type": "Country",
+      "name": "United States"
+    },
+    "serviceType": ["Roof Measurement Reports", "Wall Measurement Reports", "Xactimate ESX Reports", "Aerial Roof Measurements"],
+    "priceRange": "Starting at $12",
+    "sameAs": []
+  }
+  </script>
+  <!-- Preconnect to Firebase and Google domains for faster initial load -->
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://maps.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://apis.google.com" crossorigin>
+  <!-- Google Maps loaded on-demand by google-maps-loader.service.ts -->
   <script>
     window.__googleMapsReady = new Promise(function(resolve) {
       window.__resolveGoogleMaps = resolve;
     });
+    window.__loadGoogleMaps = function() {
+      if (window.__googleMapsLoading) return window.__googleMapsReady;
+      window.__googleMapsLoading = true;
+      var s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyA7o2T6o-1uddtlc3PhDqYXi8F5rZN3om8&libraries=places,geocoding&callback=__resolveGoogleMaps';
+      s.async = true;
+      document.head.appendChild(s);
+      return window.__googleMapsReady;
+    };
   </script>
-  <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA7o2T6o-1uddtlc3PhDqYXi8F5rZN3om8&amp;libraries=places,geocoding&amp;callback=__resolveGoogleMaps"></script>
-<style>:root{--swiper-theme-color:#007aff}:root{--swiper-navigation-size:44px}*{box-sizing:border-box;margin:0;padding:0}html,body{overflow-x:hidden;width:100%;max-width:100vw;scrollbar-width:none;-ms-overflow-style:none}body::-webkit-scrollbar{display:none}body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}:root{--swiper-navigation-size:14px}</style><link rel="stylesheet" href="styles-HSBD6AKF.css" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="styles-HSBD6AKF.css"></noscript></head>
+<style>*{box-sizing:border-box;margin:0;padding:0}html,body{overflow-x:hidden;width:100%;max-width:100vw;scrollbar-width:none;-ms-overflow-style:none}body::-webkit-scrollbar{display:none}body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}:root{--swiper-navigation-size:14px}</style><link rel="stylesheet" href="styles-QEN2WSCI.css" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="styles-QEN2WSCI.css"></noscript></head>
 <body>
   <app-root></app-root>
-<link rel="modulepreload" href="chunk-DAG2A6C4.js"><link rel="modulepreload" href="chunk-5FZAZHR6.js"><link rel="modulepreload" href="chunk-HDLOAMOT.js"><link rel="modulepreload" href="chunk-IYLD5ASO.js"><link rel="modulepreload" href="chunk-W6FFFQDU.js"><link rel="modulepreload" href="chunk-SIRDNXN5.js"><script src="main-WHI7C3IO.js" type="module"></script></body>
+<link rel="modulepreload" href="chunk-MY5R57UO.js"><link rel="modulepreload" href="chunk-S3LSANWR.js"><link rel="modulepreload" href="chunk-MJ7S2NKT.js"><link rel="modulepreload" href="chunk-SLKGLC5J.js"><link rel="modulepreload" href="chunk-JUV6UAEY.js"><link rel="modulepreload" href="chunk-PWVMOTWZ.js"><script src="main-PC6BUMGQ.js" type="module"></script></body>
 </html>

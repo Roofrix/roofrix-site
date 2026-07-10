@@ -208,6 +208,20 @@ export class OrderReview implements OnInit {
       this.uploadWarning = 'Order placed, but the admin notification email could not be sent.';
     }
 
+    // Send rush order notification if applicable
+    const hasRushAddon = (this.orderData.addons || []).some(
+      (addon: any) => addon.name.toLowerCase().includes('rush') || addon.id?.includes('rush')
+    );
+    if (hasRushAddon) {
+      this.emailNotificationService.sendRushOrderNotification({
+        orderNumber: this.orderNumber,
+        customerName: orderData.customerName,
+        reportType: item.reportType?.name || '',
+        itemCount: 1,
+        projectAddress: item.projectAddress
+      });
+    }
+
     this.ngZone.run(() => {
       this.loading = false;
       this.uploadingFiles = false;
@@ -294,6 +308,20 @@ export class OrderReview implements OnInit {
       });
       if (!emailResult.success && !this.uploadWarning) {
         this.uploadWarning = 'Order placed, but the admin notification email could not be sent.';
+      }
+
+      // Send rush order notification if applicable
+      const hasRushAddon = (item.selectedAddons || []).some(
+        (addon: any) => addon.name.toLowerCase().includes('rush') || addon.id?.includes('rush')
+      );
+      if (hasRushAddon) {
+        this.emailNotificationService.sendRushOrderNotification({
+          orderNumber: orderNumber,
+          customerName: customerName,
+          reportType: item.reportType?.name || '',
+          itemCount: 1,
+          projectAddress: item.projectAddress
+        });
       }
     }
 
