@@ -16,7 +16,14 @@
       "Bash(node make-og.js)",
       "Bash(curl -sI https://roofrix.com/assets/og-image.jpg)",
       "Bash(curl -s https://roofrix.com/)",
-      "Bash(curl -sI \"https://roofrix.com/assets/og-image.jpg\")"
+      "Bash(curl -sI \"https://roofrix.com/assets/og-image.jpg\")",
+      "Read(//c/Users/Admin/AppData/Local/Temp/claude/**)",
+      "Bash(xargs -I{} ls -la \"{}\")",
+      "Bash(sort -k6,7)",
+      "Bash(ls -lat \"/c/Users/Admin/AppData/Local/Temp\" 2>/dev/null | head -15; ls -lat \"/c/Users/Admin/Downloads\" 2>/dev/null | head -10)",
+      "Read(//c/Users/Admin/AppData/Local/Temp/**)",
+      "Read(//c/Users/Admin/Downloads/**)",
+      "Bash(node -e ' *)"
     ]
   }
 }
