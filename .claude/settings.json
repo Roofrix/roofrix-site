@@ -8,7 +8,14 @@
       "Bash(curl -sI https://roofrix.com/)",
       "Bash(curl -sI https://roofrix.com/main-PC6BUMGQ.js)",
       "Bash(curl -sI https://roofrix.com/cart)",
-      "Bash(curl -sI https://roofrix.com/assets/roofrix.png)"
+      "Bash(curl -sI https://roofrix.com/assets/roofrix.png)",
+      "Bash(git credential-manager *)",
+      "Read(//c/Users/Admin/AppData/Local/Temp/claude/d--New-folder-roofrix-site/68640d42-5d92-44d4-83a9-2cc705eea1eb/scratchpad/**)",
+      "Bash(npm init *)",
+      "Bash(npm i *)",
+      "Bash(node make-og.js)",
+      "Bash(curl -sI https://roofrix.com/assets/og-image.jpg)",
+      "Bash(curl -s https://roofrix.com/)"
     ]
   }
 }
