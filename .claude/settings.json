@@ -15,7 +15,8 @@
       "Bash(npm i *)",
       "Bash(node make-og.js)",
       "Bash(curl -sI https://roofrix.com/assets/og-image.jpg)",
-      "Bash(curl -s https://roofrix.com/)"
+      "Bash(curl -s https://roofrix.com/)",
+      "Bash(curl -sI \"https://roofrix.com/assets/og-image.jpg\")"
     ]
   }
 }
