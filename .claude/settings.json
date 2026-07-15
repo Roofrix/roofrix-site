@@ -23,7 +23,9 @@
       "Bash(ls -lat \"/c/Users/Admin/AppData/Local/Temp\" 2>/dev/null | head -15; ls -lat \"/c/Users/Admin/Downloads\" 2>/dev/null | head -10)",
       "Read(//c/Users/Admin/AppData/Local/Temp/**)",
       "Read(//c/Users/Admin/Downloads/**)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(curl -s https://roofrix.com/robots.txt)",
+      "Bash(curl -s -o /dev/null -w '%{http_code} %{content_type} %{size_download} bytes\\\\n' -A \"facebookexternalhit/1.1\" https://roofrix.com/assets/og-image.jpg)"
     ]
   }
 }
