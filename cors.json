@@ -1,7 +1,14 @@
 [
   {
-    "origin": ["http://localhost:4200", "https://roofrix-d116a.web.app"],
+    "origin": [
+      "https://roofrix.com",
+      "https://www.roofrix.com",
+      "https://roofrix-d116a.web.app",
+      "https://roofrix-d116a.firebaseapp.com",
+      "http://localhost:4200"
+    ],
     "method": ["GET"],
+    "responseHeader": ["Content-Type", "Content-Disposition", "Content-Length"],
     "maxAgeSeconds": 3600
   }
 ]
